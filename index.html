@@ -385,6 +385,7 @@
                     </span>
                     <input type="text" id="search-input" class="form-control" placeholder="Search songs...">
                 </div>
+                <div id="song-count" class="text-muted mt-2 small"></div>
             </div>
             <ul id="playlist" class="list-group"></ul>
         </div>
@@ -444,6 +445,9 @@
             `<li class="list-group-item" onclick="playSong(${index})">${song.name}</li>`
         )
         .join("");
+      
+      // Update song count
+      document.getElementById('song-count').textContent = `${songs.length} songs in playlist`;
     }
 
     // Update audio source and play
@@ -606,15 +610,22 @@
     searchInput.addEventListener('input', (e) => {
       const searchTerm = e.target.value.toLowerCase();
       const items = playlist.getElementsByClassName('list-group-item');
+      let visibleCount = 0;
       
       Array.from(items).forEach(item => {
         const songName = item.textContent.toLowerCase();
         if (songName.includes(searchTerm)) {
           item.style.display = '';
+          visibleCount++;
         } else {
           item.style.display = 'none';
         }
       });
+      
+      // Update song count with search results
+      document.getElementById('song-count').textContent = searchTerm 
+        ? `${visibleCount} songs found` 
+        : `${songs.length} songs in playlist`;
     });
 
     // Add shuffle functionality
