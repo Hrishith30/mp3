@@ -344,7 +344,7 @@
                 </div>
 
                 <div class="volume-container">
-                    <i class="fas fa-volume-up"></i>
+                    <i class="fas fa-volume-up" id="volume-icon" style="cursor: pointer;"></i>
                     <input type="range" id="volume-slider" min="0" max="100" value="100">
                 </div>
 
@@ -563,9 +563,43 @@
 
     // Volume control
     const volumeSlider = document.getElementById('volume-slider');
-    volumeSlider.addEventListener('input', (e) => {
-      audio.volume = e.target.value / 100;
-    });
+    const volumeIcon = document.getElementById('volume-icon');
+    let lastVolume = 1;
+
+    // Check if running on mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Hide volume controls on mobile devices
+    if (isMobile) {
+        document.querySelector('.volume-container').style.display = 'none';
+    } else {
+        volumeIcon.addEventListener('click', () => {
+            if (audio.volume > 0) {
+                lastVolume = audio.volume;
+                audio.volume = 0;
+                volumeSlider.value = 0;
+                volumeIcon.className = 'fas fa-volume-mute';
+            } else {
+                audio.volume = lastVolume;
+                volumeSlider.value = lastVolume * 100;
+                volumeIcon.className = 'fas fa-volume-up';
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            const value = e.target.value / 100;
+            audio.volume = value;
+            lastVolume = value;
+            
+            if (value === 0) {
+                volumeIcon.className = 'fas fa-volume-mute';
+            } else if (value < 0.5) {
+                volumeIcon.className = 'fas fa-volume-down';
+            } else {
+                volumeIcon.className = 'fas fa-volume-up';
+            }
+        });
+    }
 
     // Search functionality
     const searchInput = document.getElementById('search-input');
