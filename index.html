@@ -251,6 +251,70 @@
         top: 20px;
         z-index: 1000;
     }
+
+    .song-image {
+        width: 150px;
+        height: 150px;
+        margin-top: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+        animation: rotate 20s linear infinite, rgbShadow 15s linear infinite;
+        animation-play-state: paused, paused;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        transition: box-shadow 0.3s ease;
+    }
+
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes rgbShadow {
+        0% {
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        10% {
+            box-shadow: 0 0 40px rgba(255, 0, 0, 1);
+        }
+        20% {
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+        }
+        30% {
+            box-shadow: 0 0 40px rgba(255, 165, 0, 1);
+        }
+        40% {
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+        }
+        50% {
+            box-shadow: 0 0 40px rgba(255, 255, 0, 1);
+        }
+        60% {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+        70% {
+            box-shadow: 0 0 40px rgba(0, 255, 0, 1);
+        }
+        80% {
+            box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+        }
+        90% {
+            box-shadow: 0 0 40px rgba(0, 0, 255, 1);
+        }
+        95% {
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+        }
+        100% {
+            box-shadow: 0 0 40px rgba(255, 0, 255, 1);
+        }
+    }
+
+    .song-image.playing {
+        animation-play-state: running, running;
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -266,6 +330,7 @@
             <div id="player" class="card shadow-lg p-3 mb-5 rounded">
                 <div class="song-info">
                     <h4 id="current-song">Loading songs...</h4>
+                    <img src="music.png" alt="Music Icon" class="song-image">
                 </div>
                 
                 <div class="progress-container">
@@ -582,7 +647,7 @@
                 artist: 'Music Player',
                 album: 'Web Player',
                 artwork: [
-                    { src: 'path/to/default-artwork.png', sizes: '512x512', type: 'image/png' }
+                    { src: 'music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
         }
@@ -603,6 +668,20 @@
             await wakeLock.release();
             wakeLock = null;
         }
+    });
+
+    // Get the song image element
+    const songImage = document.querySelector('.song-image');
+
+    // Update the audio play event listener
+    audio.addEventListener('play', () => {
+        // ... existing play code ...
+        songImage.classList.add('playing');
+    });
+
+    audio.addEventListener('pause', () => {
+        // ... existing pause code ...
+        songImage.classList.remove('playing');
     });
   </script>
 </body>
