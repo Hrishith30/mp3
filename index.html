@@ -570,11 +570,12 @@
     const volumeIcon = document.getElementById('volume-icon');
     let lastVolume = 1;
 
-    // Check if running on mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // Check if running on mobile device or tablet
+    const isMobileOrTablet = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini|(iPad|iPhone|iPod).+Version\/[\d\.]+.*Safari/i.test(navigator.userAgent) 
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);  // Detects iPad Pro
 
-    // Hide volume controls on mobile devices
-    if (isMobile) {
+    // Hide volume controls on mobile devices and tablets
+    if (isMobileOrTablet) {
         document.querySelector('.volume-container').style.display = 'none';
     } else {
         volumeIcon.addEventListener('click', () => {
