@@ -16,12 +16,32 @@
       color: white;
     }
 
+    .container {
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #1db954;
+      animation: pulsate 4s ease-in-out infinite;
+    }
+
+    @keyframes pulsate {
+      0% {
+        box-shadow: 0 0 10px rgba(29, 185, 84, 0.4);
+      }
+      50% {
+        box-shadow: 0 0 30px rgba(29, 185, 84, 0.7);
+      }
+      100% {
+        box-shadow: 0 0 10px rgba(29, 185, 84, 0.4);
+      }
+    }
+
     #player {
       max-width: 100%;
       margin: 15px auto;
       padding: 15px;
       background-color: #282828;
       border: none;
+      box-shadow: 0 0 10px #1db954;
     }
 
     #playlist {
@@ -29,24 +49,29 @@
       margin: 15px auto;
       max-height: 50vh;
       overflow-y: auto;
+      box-shadow: 0 0 10px #1db954;
     }
 
     #playlist::-webkit-scrollbar {
       width: 8px;
+      box-shadow: 0 0 10px #1db954;
     }
 
     #playlist::-webkit-scrollbar-track {
       background: #282828;
       border-radius: 4px;
+      box-shadow: 0 0 10px #1db954;
     }
 
     #playlist::-webkit-scrollbar-thumb {
       background: #404040;
       border-radius: 4px;
+      box-shadow: 0 0 10px #1db954;
     }
 
     #playlist::-webkit-scrollbar-thumb:hover {
       background: #505050;
+      box-shadow: 0 0 10px #1db954;
     }
 
     .song-info {
@@ -113,14 +138,42 @@
       background-color: #404040;
       border-radius: 2px;
       cursor: pointer;
+      position: relative;
     }
 
     #progress {
       width: 0%;
       height: 100%;
-      background-color: #1db954;
+      background-color: #007bff;
       border-radius: 2px;
       transition: width 0.1s linear;
+      position: relative;
+    }
+
+    /* Hide handle by default */
+    #progress::after {
+      content: '';
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      background-color: #007bff;
+      border-radius: 50%;
+      cursor: grab;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      opacity: 0;  /* Hide by default */
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+
+    /* Show handle when hovering over progress bar */
+    #progress-bar:hover #progress::after {
+      opacity: 1;
+    }
+
+    #progress::after:hover {
+      transform: translateY(-50%) scale(1.2);
     }
 
     .time-display {
@@ -136,6 +189,7 @@
       align-items: center;
       gap: 10px;
       padding: 10px 20px;
+      color: white;
     }
 
     #volume-slider {
@@ -315,6 +369,16 @@
     .song-image.playing {
         animation-play-state: running, running;
     }
+
+    /* Media query for touch devices */
+    @media (hover: none) and (pointer: coarse) {
+        #progress::after {
+            opacity: 1; /* Always show handle on touch devices */
+            width: 16px; /* Slightly larger handle for touch */
+            height: 16px;
+            right: -8px;
+        }
+    }
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -391,6 +455,11 @@
         </div>
     </div>
   </div>
+
+  <footer class="text-center py-3 text-white">
+    <p>&copy; 2024 Web Music Player. All rights reserved.</p>
+    <p>Made with ❤️ by Hrishith</p>
+  </footer>
 
   <script>
     // DOM Elements
@@ -504,19 +573,47 @@
     fetchSongs();
 
     // Update progress bar
-    audio.addEventListener('timeupdate', () => {
-      const progress = (audio.currentTime / audio.duration) * 100;
-      document.getElementById('progress').style.width = progress + '%';
+    let isDragging = false;
+    const progressBar = document.getElementById('progress-bar');
+
+    progressBar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        updateProgressBar(e);
     });
 
-    // Enable clicking on progress bar to seek
-    document.getElementById('progress-bar').addEventListener('click', (e) => {
-      const progressBar = e.currentTarget;
-      const clickPosition = e.offsetX;
-      const totalWidth = progressBar.offsetWidth;
-      const seekTime = (clickPosition / totalWidth) * audio.duration;
-      audio.currentTime = seekTime;
+    document.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            updateProgressBar(e);
+        }
     });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    function updateProgressBar(e) {
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (e.clientX - rect.left) / rect.width;
+        const seekTime = pos * audio.duration;
+        if (seekTime >= 0 && seekTime <= audio.duration) {
+            audio.currentTime = seekTime;
+        }
+    }
+
+    // Replace the existing click event listener with touch support
+    progressBar.addEventListener('touchstart', handleTouch);
+    progressBar.addEventListener('touchmove', handleTouch);
+
+    function handleTouch(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const rect = progressBar.getBoundingClientRect();
+        const pos = (touch.clientX - rect.left) / rect.width;
+        const seekTime = pos * audio.duration;
+        if (seekTime >= 0 && seekTime <= audio.duration) {
+            audio.currentTime = seekTime;
+        }
+    }
 
     // Update play/pause button states
     audio.addEventListener('play', () => {
@@ -728,6 +825,13 @@
     audio.addEventListener('pause', () => {
         // ... existing pause code ...
         songImage.classList.remove('playing');
+    });
+
+    // Add this after the progress bar event listeners
+    audio.addEventListener('timeupdate', () => {
+        const progress = document.getElementById('progress');
+        const percent = (audio.currentTime / audio.duration) * 100;
+        progress.style.width = percent + '%';
     });
   </script>
 </body>
