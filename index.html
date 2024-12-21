@@ -480,13 +480,16 @@
     let songs = [];
     let currentIndex = 0;
 
+    // Add these variables at the top with other state variables
+    let originalOrder = [];
+    let shuffledOrder = [];
+
     // Fetch songs from the GitHub repository
     async function fetchSongs() {
       try {
         const response = await fetch(repoUrl);
         const files = await response.json();
 
-        // Filter for .mp3 files and build the song list
         songs = files
           .filter(file => file.name.endsWith('.mp3'))
           .map(file => ({
@@ -495,6 +498,8 @@
           }));
 
         if (songs.length > 0) {
+          // Store original order
+          originalOrder = [...songs];
           populatePlaylist();
           updateSong();
         } else {
@@ -547,11 +552,7 @@
     });
 
     nextButton.addEventListener("click", () => {
-      if (isShuffled) {
-        currentIndex = Math.floor(Math.random() * songs.length);
-      } else {
-        currentIndex = (currentIndex + 1) % songs.length;
-      }
+      currentIndex = (currentIndex + 1) % songs.length;
       updateSong();
     });
 
@@ -560,9 +561,6 @@
       if (isRepeat) {
         audio.currentTime = 0;
         audio.play();
-      } else if (isShuffled) {
-        currentIndex = Math.floor(Math.random() * songs.length);
-        updateSong();
       } else {
         currentIndex = (currentIndex + 1) % songs.length;
         updateSong();
@@ -726,11 +724,40 @@
         : `${songs.length} songs in playlist`;
     });
 
-    // Add shuffle functionality
+    // Modify the shuffle functionality
+    function shuffleArray() {
+        if (isShuffled) {
+            // Create a new shuffled array excluding the current song
+            const currentSong = songs[currentIndex];
+            const remainingSongs = [...songs].filter(song => song !== currentSong);
+            
+            // Fisher-Yates shuffle algorithm
+            for (let i = remainingSongs.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [remainingSongs[i], remainingSongs[j]] = [remainingSongs[j], remainingSongs[i]];
+            }
+            
+            // Put current song at the beginning
+            shuffledOrder = [currentSong, ...remainingSongs];
+            songs = [...shuffledOrder];
+            currentIndex = 0;
+        } else {
+            // Restore original order
+            const currentSong = songs[currentIndex];
+            songs = [...originalOrder];
+            currentIndex = songs.findIndex(song => song.name === currentSong.name);
+        }
+        
+        populatePlaylist();
+        updatePlaylist();
+    }
+
+    // Update the shuffle button click handler
     shuffleButton.addEventListener('click', () => {
-      isShuffled = !isShuffled;
-      shuffleButton.classList.toggle('btn-success');
-      shuffleButton.classList.toggle('btn-dark');
+        isShuffled = !isShuffled;
+        shuffleButton.classList.toggle('btn-success');
+        shuffleButton.classList.toggle('btn-dark');
+        shuffleArray();
     });
 
     repeatButton.addEventListener('click', () => {
