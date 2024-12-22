@@ -476,11 +476,7 @@
     let isRepeat = false;
 
     // Repository Details
-    const repoUrls = [
-        "https://api.github.com/repos/Hrishith30/player/contents/",
-        "https://api.github.com/repos/Hrishith30/player1/contents/",
-        "https://api.github.com/repos/Hrishith30/player2/contents/",
-    ];
+    const repoUrl = "https://api.github.com/repos/Hrishith30/player/contents/";
     let songs = [];
     let currentIndex = 0;
 
@@ -488,39 +484,31 @@
     let originalOrder = [];
     let shuffledOrder = [];
 
-    // Modify the fetchSongs function to handle multiple repositories
+    // Fetch songs from the GitHub repository
     async function fetchSongs() {
-        try {
-            const allSongs = [];
-            
-            // Fetch songs from all repositories
-            for (const repoUrl of repoUrls) {
-                const response = await fetch(repoUrl);
-                const files = await response.json();
-                
-                const repoSongs = files
-                    .filter(file => file.name.endsWith('.mp3'))
-                    .map(file => ({
-                        name: file.name,
-                        url: file.download_url,
-                    }));
-                
-                allSongs.push(...repoSongs);
-            }
+      try {
+        const response = await fetch(repoUrl);
+        const files = await response.json();
 
-            songs = allSongs;
+        songs = files
+          .filter(file => file.name.endsWith('.mp3'))
+          .map(file => ({
+            name: file.name,
+            url: file.download_url,
+          }));
 
-            if (songs.length > 0) {
-                originalOrder = [...songs];
-                populatePlaylist();
-                updateSong();
-            } else {
-                currentSong.textContent = "No songs found in the repositories.";
-            }
-        } catch (error) {
-            console.error("Error fetching songs:", error);
-            currentSong.textContent = "Failed to load songs. Please check the repositories.";
+        if (songs.length > 0) {
+          // Store original order
+          originalOrder = [...songs];
+          populatePlaylist();
+          updateSong();
+        } else {
+          currentSong.textContent = "No songs found in the repository.";
         }
+      } catch (error) {
+        console.error("Error fetching songs:", error);
+        currentSong.textContent = "Failed to load songs. Please check the repository.";
+      }
     }
 
     // Populate playlist
