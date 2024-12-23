@@ -488,13 +488,13 @@
     let originalOrder = [];
     let shuffledOrder = [];
 
-    // Modify the fetchSongs function to handle multiple repositories
+    // Modify the fetchSongs function
     async function fetchSongs() {
-        try {
-            const allSongs = [];
-            
-            // Fetch songs from all repositories
-            for (const repoUrl of repoUrls) {
+        const allSongs = [];
+        
+        // Try each repository until we successfully load songs
+        for (const repoUrl of repoUrls) {
+            try {
                 const response = await fetch(repoUrl);
                 const files = await response.json();
                 
@@ -505,22 +505,23 @@
                         url: file.download_url,
                     }));
                 
-                allSongs.push(...repoSongs);
+                if (repoSongs.length > 0) {
+                    allSongs.push(...repoSongs);
+                    // Sort and display songs immediately when we find a working repository
+                    songs = allSongs.sort((a, b) => a.name.localeCompare(b.name));
+                    originalOrder = [...songs];
+                    populatePlaylist();
+                    updateSong();
+                    return; // Exit the function once we have songs
+                }
+            } catch (error) {
+                console.warn(`Error fetching songs from ${repoUrl}:`, error);
+                // Continue trying other repositories
             }
-
-            songs = allSongs;
-
-            if (songs.length > 0) {
-                originalOrder = [...songs];
-                populatePlaylist();
-                updateSong();
-            } else {
-                currentSong.textContent = "No songs found in the repositories.";
-            }
-        } catch (error) {
-            console.error("Error fetching songs:", error);
-            currentSong.textContent = "Failed to load songs. Please check the repositories.";
         }
+
+        // Only show error if no repositories worked
+        currentSong.textContent = "No songs found in any repository.";
     }
 
     // Populate playlist
