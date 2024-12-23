@@ -488,7 +488,7 @@
     let originalOrder = [];
     let shuffledOrder = [];
 
-    // Modify the fetchSongs function to handle multiple repositories
+    // Modify the fetchSongs function
     async function fetchSongs() {
         try {
             const allSongs = [];
@@ -508,7 +508,19 @@
                 allSongs.push(...repoSongs);
             }
 
-            songs = allSongs;
+            // Sort songs alphabetically
+            songs = allSongs.sort((a, b) => {
+                // Extract numbers from the filenames (if they exist)
+                const aMatch = a.name.match(/\d+/);
+                const bMatch = b.name.match(/\d+/);
+                
+                if (aMatch && bMatch) {
+                    // If both have numbers, compare numerically
+                    return parseInt(aMatch[0]) - parseInt(bMatch[0]);
+                }
+                // Otherwise, sort alphabetically
+                return a.name.localeCompare(b.name);
+            });
 
             if (songs.length > 0) {
                 originalOrder = [...songs];
