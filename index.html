@@ -544,7 +544,7 @@
     let originalOrder = [];
     let shuffledOrder = [];
 
-    // Modify the fetchSongs function to handle multiple repositories
+    // Modify the fetchSongs function to handle multiple repositories and sort alphabetically
     async function fetchSongs() {
         try {
             const allSongs = [];
@@ -564,7 +564,8 @@
                 allSongs.push(...repoSongs);
             }
 
-            songs = allSongs;
+            // Sort songs alphabetically by name
+            songs = allSongs.sort((a, b) => a.name.localeCompare(b.name));
 
             if (songs.length > 0) {
                 originalOrder = [...songs];
