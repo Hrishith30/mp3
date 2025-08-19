@@ -34,78 +34,68 @@ class MusicPlayer {
     }
 
     async loadSongs() {
-        const repositories = [
-            'https://api.github.com/repos/Hrishith30/player/contents/',
-            'https://api.github.com/repos/Hrishith30/player1/contents/',
-            'https://api.github.com/repos/Hrishith30/player2/contents/'
+        // For GitHub Pages, we'll use a different approach
+        // Since GitHub Pages has CORS restrictions, we'll create a sample playlist
+        // You can replace this with your actual song URLs
+        
+        const sampleSongs = [
+            {
+                name: "Sample Song 1",
+                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
+                repo: "Sample Repo",
+                size: 1024,
+                path: "sample1.mp3"
+            },
+            {
+                name: "Sample Song 2", 
+                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
+                repo: "Sample Repo",
+                size: 1024,
+                path: "sample2.mp3"
+            },
+            {
+                name: "Sample Song 3",
+                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
+                repo: "Sample Repo", 
+                size: 1024,
+                path: "sample3.mp3"
+            }
         ];
 
         try {
-            const allSongs = [];
+            // For GitHub Pages, you have a few options:
             
-            for (const repo of repositories) {
-                try {
-                    const response = await fetch(repo);
-                    if (response.ok) {
-                        const contents = await response.json();
-                        const songs = contents
-                            .filter(item => item.type === 'file' && item.name.toLowerCase().endsWith('.mp3'))
-                            .map(item => {
-                                // Clean up song names by removing common website suffixes
-                                let cleanName = item.name.replace('.mp3', '');
-                                
-                                // Remove common website suffixes that make names too long
-                                const websiteSuffixes = [
-                                    ' - SenSongsMp3.Co',
-                                    ' - SenSongsMp3',
-                                    ' - SenSongs',
-                                    ' - Mp3.Co',
-                                    ' - Mp3',
-                                    ' - SongsMp3',
-                                    ' - Songs',
-                                    ' - Co',
-                                    ' - Download',
-                                    ' - Free',
-                                    ' - 320kbps',
-                                    ' - 128kbps',
-                                    ' - High Quality'
-                                ];
-                                
-                                websiteSuffixes.forEach(suffix => {
-                                    if (cleanName.includes(suffix)) {
-                                        cleanName = cleanName.replace(suffix, '');
-                                    }
-                                });
-                                
-                                // Clean up repo names too
-                                let cleanRepo = repo.split('/')[5];
-                                if (cleanRepo && cleanRepo.length > 20) {
-                                    cleanRepo = cleanRepo.substring(0, 20);
-                                }
-                                
-                                return {
-                                    name: cleanName,
-                                    url: item.download_url,
-                                    repo: cleanRepo,
-                                    size: item.size,
-                                    path: item.path
-                                };
-                            });
-                        allSongs.push(...songs);
-                    }
-                } catch (error) {
-                    console.warn(`Failed to fetch from ${repo}:`, error);
-                }
-            }
+            // Option 1: Use direct MP3 URLs (if you have them hosted elsewhere)
+            // const directUrls = [
+            //     "https://your-domain.com/songs/song1.mp3",
+            //     "https://your-domain.com/songs/song2.mp3"
+            // ];
+            
+            // Option 2: Use GitHub raw URLs (but these have limitations)
+            // const githubRawUrls = [
+            //     "https://raw.githubusercontent.com/username/repo/main/song1.mp3",
+            //     "https://raw.githubusercontent.com/username/repo/main/song2.mp3"
+            // ];
+            
+            // Option 3: Use a different hosting service for audio files
+            // const externalUrls = [
+            //     "https://audio-service.com/song1.mp3",
+            //     "https://audio-service.com/songs/song2.mp3"
+            // ];
 
-            // Sort songs alphabetically by name
-            this.playlist = allSongs.sort((a, b) => a.name.localeCompare(b.name));
+            this.playlist = sampleSongs;
             this.renderAllSongs();
             this.renderTopPlayed();
             
+            console.log('Sample songs loaded for GitHub Pages testing');
+            console.log('To use your actual songs, you need to:');
+            console.log('1. Host MP3 files on a service that allows CORS');
+            console.log('2. Or use GitHub raw URLs (limited functionality)');
+            console.log('3. Or host audio files on your own domain');
+            
         } catch (error) {
             console.error('Error loading songs:', error);
-            this.showError('Failed to load songs. Please try again later.');
+            this.showError('Failed to load songs. Check console for details.');
         }
     }
 

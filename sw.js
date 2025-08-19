@@ -1,10 +1,10 @@
 // Service Worker for Background Audio Support
 const CACHE_NAME = 'music-player-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/script.js'
+    './',
+    './index.html',
+    './styles.css',
+    './script.js'
 ];
 
 // Install event - cache resources
