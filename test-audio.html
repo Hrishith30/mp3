@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio URL Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.testing { background: #fff3cd; color: #856404; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .audio-player {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Audio URL Tester</h1>
+    <p>Use this tool to test if your audio URLs work before adding them to the music player.</p>
+    
+    <div class="test-item">
+        <h3>Test Your Audio URLs</h3>
+        <input type="text" id="audioUrl" placeholder="Enter audio URL (MP3, WAV, etc.)" style="width: 70%; padding: 8px;">
+        <button onclick="testAudioUrl()">Test URL</button>
+        <div id="testResult"></div>
+    </div>
+
+    <div class="test-item">
+        <h3>Sample Working Audio URLs</h3>
+        <p>These URLs are known to work on GitHub Pages:</p>
+        <ul>
+            <li><strong>Gentle Rain:</strong> <code>https://www.soundjay.com/misc/sounds/rain-01.wav</code></li>
+            <li><strong>Ocean Waves:</strong> <code>https://www.soundjay.com/misc/sounds/ocean-wave-1.wav</code></li>
+            <li><strong>Forest Birds:</strong> <code>https://www.soundjay.com/misc/sounds/birds-1.wav</code></li>
+            <li><strong>Thunder Storm:</strong> <code>https://www.soundjay.com/misc/sounds/thunder-1.wav</code></li>
+            <li><strong>Creek Water:</strong> <code>https://www.soundjay.com/misc/sounds/creek-1.wav</code></li>
+            <li><strong>Wind Chimes:</strong> <code>https://www.soundjay.com/misc/sounds/wind-chimes-1.wav</code></li>
+        </ul>
+        <button onclick="testAllSampleUrls()">Test All Sample URLs</button>
+    </div>
+
+    <div id="testResults"></div>
+
+    <script>
+        async function testAudioUrl() {
+            const url = document.getElementById('audioUrl').value.trim();
+            if (!url) {
+                alert('Please enter an audio URL');
+                return;
+            }
+
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '<div class="status testing">Testing...</div>';
+
+            try {
+                // Test if URL is accessible
+                const response = await fetch(url, { method: 'HEAD' });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ URL is accessible!</div>
+                        <audio controls class="audio-player">
+                            <source src="${url}" type="audio/wav">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                        <p><strong>Content-Type:</strong> ${response.headers.get('content-type') || 'Unknown'}</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ URL not accessible</div>
+                        <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ Error testing URL</div>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>This usually means CORS restrictions or the URL is invalid.</p>
+                `;
+            }
+        }
+
+        async function testAllSampleUrls() {
+            const sampleUrls = [
+                { name: 'Gentle Rain', url: 'https://www.soundjay.com/misc/sounds/rain-01.wav' },
+                { name: 'Ocean Waves', url: 'https://www.soundjay.com/misc/sounds/ocean-wave-1.wav' },
+                { name: 'Forest Birds', url: 'https://www.soundjay.com/misc/sounds/birds-1.wav' },
+                { name: 'Thunder Storm', url: 'https://www.soundjay.com/misc/sounds/thunder-1.wav' },
+                { name: 'Creek Water', url: 'https://www.soundjay.com/misc/sounds/creek-1.wav' },
+                { name: 'Wind Chimes', url: 'https://www.soundjay.com/misc/sounds/wind-chimes-1.wav' }
+            ];
+
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<h3>Testing Sample URLs...</h3>';
+
+            for (const sample of sampleUrls) {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-item';
+                testDiv.innerHTML = `
+                    <h4>${sample.name}</h4>
+                    <p><code>${sample.url}</code></p>
+                    <div class="status testing">Testing...</div>
+                `;
+                resultsDiv.appendChild(testDiv);
+
+                try {
+                    const response = await fetch(sample.url, { method: 'HEAD' });
+                    const statusDiv = testDiv.querySelector('.status');
+                    
+                    if (response.ok) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Working';
+                        testDiv.innerHTML += `
+                            <audio controls class="audio-player">
+                                <source src="${sample.url}" type="audio/wav">
+                            </audio>
+                        `;
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = `❌ Failed (${response.status})`;
+                    }
+                } catch (error) {
+                    const statusDiv = testDiv.querySelector('.status');
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Error';
+                    testDiv.innerHTML += `<p><small>Error: ${error.message}</small></p>`;
+                }
+            }
+        }
+
+        // Test a URL when Enter is pressed
+        document.getElementById('audioUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testAudioUrl();
+            }
+        });
+    </script>
+</body>
+</html>

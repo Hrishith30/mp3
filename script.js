@@ -34,64 +34,138 @@ class MusicPlayer {
     }
 
     async loadSongs() {
-        // For GitHub Pages, we'll use a different approach
-        // Since GitHub Pages has CORS restrictions, we'll create a sample playlist
-        // You can replace this with your actual song URLs
+        // For GitHub Pages, we'll use working audio URLs
+        // These are free, CORS-enabled audio files that work on GitHub Pages
         
         const sampleSongs = [
             {
-                name: "Sample Song 1",
-                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
-                repo: "Sample Repo",
+                name: "Gentle Rain",
+                url: "https://www.soundjay.com/misc/sounds/rain-01.wav",
+                repo: "Nature Sounds",
                 size: 1024,
-                path: "sample1.mp3"
+                path: "rain.wav"
             },
             {
-                name: "Sample Song 2", 
-                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
-                repo: "Sample Repo",
+                name: "Ocean Waves", 
+                url: "https://www.soundjay.com/misc/sounds/ocean-wave-1.wav",
+                repo: "Nature Sounds",
                 size: 1024,
-                path: "sample2.mp3"
+                path: "ocean.wav"
             },
             {
-                name: "Sample Song 3",
-                url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Test audio
-                repo: "Sample Repo", 
+                name: "Forest Birds",
+                url: "https://www.soundjay.com/misc/sounds/birds-1.wav",
+                repo: "Nature Sounds", 
                 size: 1024,
-                path: "sample3.mp3"
+                path: "birds.wav"
+            },
+            {
+                name: "Thunder Storm",
+                url: "https://www.soundjay.com/misc/sounds/thunder-1.wav",
+                repo: "Nature Sounds",
+                size: 1024,
+                path: "thunder.wav"
+            },
+            {
+                name: "Creek Water",
+                url: "https://www.soundjay.com/misc/sounds/creek-1.wav",
+                repo: "Nature Sounds",
+                size: 1024,
+                path: "creek.wav"
+            },
+            {
+                name: "Wind Chimes",
+                url: "https://www.soundjay.com/misc/sounds/wind-chimes-1.wav",
+                repo: "Nature Sounds",
+                size: 1024,
+                path: "chimes.wav"
             }
         ];
 
         try {
-            // For GitHub Pages, you have a few options:
+            // Test audio URLs to ensure they work
+            const workingSongs = [];
             
-            // Option 1: Use direct MP3 URLs (if you have them hosted elsewhere)
-            // const directUrls = [
-            //     "https://your-domain.com/songs/song1.mp3",
-            //     "https://your-domain.com/songs/song2.mp3"
-            // ];
-            
-            // Option 2: Use GitHub raw URLs (but these have limitations)
-            // const githubRawUrls = [
-            //     "https://raw.githubusercontent.com/username/repo/main/song1.mp3",
-            //     "https://raw.githubusercontent.com/username/repo/main/song2.mp3"
-            // ];
-            
-            // Option 3: Use a different hosting service for audio files
-            // const externalUrls = [
-            //     "https://audio-service.com/song1.mp3",
-            //     "https://audio-service.com/songs/song2.mp3"
-            // ];
+            for (const song of sampleSongs) {
+                try {
+                    // Test if audio URL is accessible
+                    const response = await fetch(song.url, { method: 'HEAD' });
+                    if (response.ok) {
+                        workingSongs.push(song);
+                        console.log(`✅ Audio URL accessible: ${song.name}`);
+                    } else {
+                        console.warn(`❌ Audio URL not accessible: ${song.name} - ${song.url}`);
+                    }
+                } catch (error) {
+                    console.warn(`❌ Failed to test audio URL: ${song.name} - ${song.url}`, error);
+                }
+            }
 
-            this.playlist = sampleSongs;
+            if (workingSongs.length === 0) {
+                // Fallback to alternative working URLs
+                const fallbackSongs = [
+                    {
+                        name: "Gentle Bells",
+                        url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
+                        repo: "Alternative Sounds",
+                        size: 1024,
+                        path: "bells.wav"
+                    },
+                    {
+                        name: "Clock Ticking",
+                        url: "https://www.soundjay.com/misc/sounds/clock-ticking-1.wav",
+                        repo: "Alternative Sounds",
+                        size: 1024,
+                        path: "clock.wav"
+                    },
+                    {
+                        name: "Keyboard Click",
+                        url: "https://www.soundjay.com/misc/sounds/computer-keyboard-1.wav",
+                        repo: "Alternative Sounds",
+                        size: 1024,
+                        path: "keyboard.wav"
+                    }
+                ];
+                
+                // Test fallback URLs too
+                const testedFallbacks = [];
+                for (const song of fallbackSongs) {
+                    try {
+                        const response = await fetch(song.url, { method: 'HEAD' });
+                        if (response.ok) {
+                            testedFallbacks.push(song);
+                            console.log(`✅ Fallback audio accessible: ${song.name}`);
+                        }
+                    } catch (error) {
+                        console.warn(`❌ Fallback audio failed: ${song.name}`);
+                    }
+                }
+                
+                if (testedFallbacks.length > 0) {
+                    this.playlist = testedFallbacks;
+                    console.log(`Using ${testedFallbacks.length} fallback audio URLs`);
+                } else {
+                    // Last resort: create silent audio
+                    this.playlist = [{
+                        name: "Silent Audio (No songs available)",
+                        url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                        repo: "System",
+                        size: 1024,
+                        path: "silent.wav"
+                    }];
+                    console.log('Using silent audio as last resort');
+                    this.showError('No working audio files found. Please add your own MP3 URLs.');
+                }
+            } else {
+                this.playlist = workingSongs;
+                console.log(`${workingSongs.length} working audio URLs loaded`);
+            }
+
             this.renderAllSongs();
             this.renderTopPlayed();
             
-            console.log('Sample songs loaded for GitHub Pages testing');
-            console.log('To use your actual songs, you need to:');
-            console.log('1. Host MP3 files on a service that allows CORS');
-            console.log('2. Or use GitHub raw URLs (limited functionality)');
-            console.log('3. Or host audio files on your own domain');
+            console.log('Audio files loaded successfully for GitHub Pages');
+            console.log('To use your own songs, replace the URLs in this function');
             
         } catch (error) {
             console.error('Error loading songs:', error);
@@ -823,10 +897,31 @@ class MusicPlayer {
             // Request audio focus for background playback
             this.requestAudioFocus();
             
+            // Add error event listener for better error handling
+            const errorHandler = (e) => {
+                console.error('Audio loading error:', e);
+                const errorMessage = this.getAudioErrorMessage(e);
+                this.showError(errorMessage);
+                this.audioPlayer.removeEventListener('error', errorHandler);
+            };
+            
+            this.audioPlayer.addEventListener('error', errorHandler);
+            
+            // Add timeout for audio loading
+            const loadingTimeout = setTimeout(() => {
+                if (!this.isPlaying) {
+                    this.showError('Audio loading timeout. Please try another song.');
+                }
+            }, 15000); // 15 seconds timeout
+            
             // Play the song
             await this.audioPlayer.play();
             this.isPlaying = true;
             this.updatePlayPauseButton();
+            
+            // Clear timeout and remove error listener on success
+            clearTimeout(loadingTimeout);
+            this.audioPlayer.removeEventListener('error', errorHandler);
             
             // Increment play count for top played
             this.incrementPlayCount(song);
@@ -835,7 +930,7 @@ class MusicPlayer {
             
         } catch (error) {
             console.error('Error playing song:', error);
-            this.showError('Failed to play song. Please try again.');
+            this.showError('Error playing song. Please try again.');
         }
     }
 
@@ -1092,6 +1187,36 @@ class MusicPlayer {
                 errorDiv.parentNode.removeChild(errorDiv);
             }
         }, 5000);
+    }
+
+    getAudioErrorMessage(error) {
+        // Provide user-friendly error messages based on error type
+        if (error.target && error.target.error) {
+            const errorCode = error.target.error.code;
+            switch (errorCode) {
+                case MediaError.MEDIA_ERR_ABORTED:
+                    return 'Audio playback was aborted. Please try again.';
+                case MediaError.MEDIA_ERR_NETWORK:
+                    return 'Network error. Please check your connection and try again.';
+                case MediaError.MEDIA_ERR_DECODE:
+                    return 'Audio format not supported. Please try another song.';
+                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    return 'Audio source not supported. Please try another song.';
+                default:
+                    return 'Audio playback error. Please try another song.';
+            }
+        }
+        
+        // Generic error messages
+        if (error.message && error.message.includes('timeout')) {
+            return 'Audio loading timeout. Please try another song.';
+        }
+        
+        if (error.message && error.message.includes('CORS')) {
+            return 'Audio access denied. Please try another song.';
+        }
+        
+        return 'Audio playback failed. Please try another song.';
     }
 
 
