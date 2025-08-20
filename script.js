@@ -21,6 +21,9 @@ class MusicPlayer {
         
         // Check device type and log for debugging
         this.checkDeviceType();
+        
+        // Start monitoring for desktop devices to ensure mute button stays hidden
+        this.startDesktopMuteButtonMonitoring();
     }
 
     initializePlayer() {
@@ -1239,6 +1242,35 @@ class MusicPlayer {
             muteBtn.replaceWith(muteBtn.cloneNode(true));
             
             console.log('💻 Mute button completely hidden on desktop');
+        }
+    }
+
+    // Continuous monitoring to ensure mute button stays hidden on desktop
+    startDesktopMuteButtonMonitoring() {
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isDesktop = window.innerWidth > 1200 && !isTouchDevice;
+        
+        if (isDesktop) {
+            console.log('💻 Starting desktop mute button monitoring');
+            
+            // Check every 2 seconds to ensure mute button stays hidden
+            setInterval(() => {
+                const muteBtn = document.getElementById('muteBtn');
+                if (muteBtn && (muteBtn.style.display !== 'none' || muteBtn.style.visibility !== 'hidden')) {
+                    console.log('💻 Mute button reappeared, hiding again...');
+                    this.hideMuteButtonOnDesktop();
+                }
+            }, 2000);
+            
+            // Also check on window resize
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 1200 && !isTouchDevice) {
+                    const muteBtn = document.getElementById('muteBtn');
+                    if (muteBtn) {
+                        this.hideMuteButtonOnDesktop();
+                    }
+                }
+            });
         }
     }
 

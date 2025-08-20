@@ -8,6 +8,67 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="player.png">
+    
+    <!-- Force hide mute button on desktop devices -->
+    <style>
+        @media (min-width: 1201px) {
+            .mute-btn,
+            #muteBtn,
+            button.mute-btn,
+            .mobile-only .mute-btn {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                background: none !important;
+                position: absolute !important;
+                left: -9999px !important;
+                top: -9999px !important;
+                z-index: -1 !important;
+                overflow: hidden !important;
+                clip: rect(0, 0, 0, 0) !important;
+                transform: none !important;
+                transition: none !important;
+                animation: none !important;
+            }
+            
+            .desktop-only {
+                display: flex !important;
+            }
+            
+            .mobile-only {
+                display: none !important;
+            }
+        }
+        
+        @media (pointer: fine) and (min-width: 1201px) {
+            .mute-btn,
+            #muteBtn,
+            button.mute-btn {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                background: none !important;
+                position: absolute !important;
+                left: -9999px !important;
+                top: -9999px !important;
+                z-index: -1 !important;
+                overflow: hidden !important;
+                clip: rect(0, 0, 0, 0) !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->

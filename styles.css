@@ -1035,3 +1035,163 @@ body {
         justify-content: flex-start;
     }
 }
+
+/* Additional desktop-specific rules to ensure mute button is completely hidden */
+@media (min-width: 1201px) {
+    /* Hide mute button on all desktop devices */
+    .volume-control .mute-btn,
+    .mobile-only .mute-btn,
+    #muteBtn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -1 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+    }
+    
+    /* Ensure volume slider is visible on desktop */
+    .volume-control .desktop-only,
+    .volume-slider-container {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: auto !important;
+        min-width: 150px !important;
+    }
+    
+    /* Force volume slider to be visible */
+    .volume-slider {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 100px !important;
+        height: 4px !important;
+    }
+}
+
+/* Touch device detection - show mute button only on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .desktop-only {
+        display: none !important;
+    }
+    
+    .mobile-only {
+        display: flex !important;
+    }
+    
+    .mute-btn {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* Non-touch device detection - hide mute button on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+    .mute-btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -1 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+    }
+    
+    .desktop-only {
+        display: flex !important;
+    }
+    
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Final override - ensure mute button is hidden on desktop with maximum specificity */
+@media (min-width: 1201px) {
+    body .volume-control .mute-btn,
+    body .mobile-only .mute-btn,
+    body #muteBtn,
+    body button.mute-btn,
+    body .mute-btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -1 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        transform: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    /* Ensure volume slider is visible on desktop */
+    body .volume-control .desktop-only,
+    body .volume-slider-container {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: auto !important;
+        min-width: 150px !important;
+    }
+}
+
+/* Force hide mute button on any device that's not touch-based */
+@media (pointer: fine) and (min-width: 1201px) {
+    .mute-btn,
+    #muteBtn,
+    button.mute-btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+        z-index: -1 !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+    }
+}
