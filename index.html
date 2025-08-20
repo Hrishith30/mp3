@@ -107,9 +107,16 @@
                 </div>
                 
                 <div class="volume-control">
-                    <i class="fas fa-volume-down"></i>
-                    <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="50">
-                    <i class="fas fa-volume-up"></i>
+                    <!-- Volume slider for desktop/laptop -->
+                    <div class="volume-slider-container desktop-only">
+                        <i class="fas fa-volume-down"></i>
+                        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="100" value="50">
+                        <i class="fas fa-volume-up"></i>
+                    </div>
+                    <!-- Mute button for mobile/tablet -->
+                    <button id="muteBtn" class="mute-btn mobile-only" title="Mute/Unmute">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
                 </div>
             </div>
         </div>

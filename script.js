@@ -21,9 +21,10 @@ class MusicPlayer {
     }
 
     initializePlayer() {
-        // Set initial volume
+        // Set initial volume and mute state
         this.audioPlayer.volume = 0.5;
-        document.getElementById('volumeSlider').value = 50;
+        this.isMuted = false;
+        this.lastVolume = 0.5;
         
         // Resume playback from where it was stopped
         this.resumePlayback();
@@ -134,10 +135,22 @@ class MusicPlayer {
             this.toggleRepeat();
         });
 
-        // Volume control
-        document.getElementById('volumeSlider').addEventListener('input', (e) => {
-            this.audioPlayer.volume = e.target.value / 100;
-        });
+        // Volume control (desktop)
+        const volumeSlider = document.getElementById('volumeSlider');
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                this.audioPlayer.volume = e.target.value / 100;
+                this.lastVolume = this.audioPlayer.volume;
+            });
+        }
+
+        // Mute button control (mobile)
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            muteBtn.addEventListener('click', () => {
+                this.toggleMute();
+            });
+        }
 
         // Progress bar seek functionality
         this.setupSeekFunctionality();
@@ -880,6 +893,45 @@ class MusicPlayer {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = Math.floor(seconds % 60);
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    toggleMute() {
+        if (this.isMuted) {
+            // Unmute: restore previous volume
+            this.audioPlayer.volume = this.lastVolume;
+            this.isMuted = false;
+            
+            // Update mute button
+            const muteBtn = document.getElementById('muteBtn');
+            if (muteBtn) {
+                muteBtn.classList.remove('muted');
+                muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            }
+            
+            // Update volume slider if it exists (desktop)
+            const volumeSlider = document.getElementById('volumeSlider');
+            if (volumeSlider) {
+                volumeSlider.value = this.lastVolume * 100;
+            }
+        } else {
+            // Mute: save current volume and set to 0
+            this.lastVolume = this.audioPlayer.volume;
+            this.audioPlayer.volume = 0;
+            this.isMuted = true;
+            
+            // Update mute button
+            const muteBtn = document.getElementById('muteBtn');
+            if (muteBtn) {
+                muteBtn.classList.add('muted');
+                muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            }
+            
+            // Update volume slider if it exists (desktop)
+            const volumeSlider = document.getElementById('volumeSlider');
+            if (volumeSlider) {
+                volumeSlider.value = 0;
+            }
+        }
     }
 
     loadUserData() {

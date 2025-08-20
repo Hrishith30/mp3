@@ -294,9 +294,17 @@ body {
 .volume-control {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
     color: rgba(255, 255, 255, 0.7);
     min-width: 150px;
+}
+
+/* Desktop controls - show volume slider */
+.desktop-only {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
 }
 
 .volume-slider {
@@ -324,6 +332,66 @@ body {
     border-radius: 50%;
     cursor: pointer;
     border: none;
+}
+
+/* Mobile controls - show mute button */
+.mobile-only {
+    display: none;
+}
+
+/* Desktop controls - hide mute button */
+.desktop-only .mute-btn {
+    display: none !important;
+}
+
+.mute-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+.mute-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+}
+
+.mute-btn.muted {
+    background: rgba(220, 53, 69, 0.3);
+    border-color: #dc3545;
+    color: #dc3545;
+}
+
+.mute-btn.muted:hover {
+    background: rgba(220, 53, 69, 0.4);
+    border-color: #dc3545;
+    transform: scale(1.1);
+}
+
+/* Touch-friendly styling for mobile devices */
+@media (hover: none) and (pointer: coarse) {
+    .mute-btn {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    .mute-btn:active {
+        transform: scale(0.95);
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .mute-btn.muted:active {
+        background: rgba(220, 53, 69, 0.5);
+    }
 }
 
 
@@ -528,8 +596,6 @@ body {
         max-width: 200px;
     }
     
-
-    
     .song-details h6 {
         font-size: 0.8rem;
     }
@@ -564,6 +630,45 @@ body {
     }
 }
 
+/* Desktop and laptop displays - show volume slider, hide mute button */
+@media (min-width: 1025px) {
+    .volume-control {
+        min-width: 150px;
+    }
+    
+    .desktop-only {
+        display: flex !important;
+    }
+    
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Mobile devices, iPads, and iPad Pros - hide volume slider, show only mute button */
+@media (max-width: 1024px), (max-device-width: 1024px), (max-width: 768px), (max-device-width: 768px) {
+    .volume-control {
+        min-width: 50px;
+        justify-content: center;
+    }
+    
+    /* Hide desktop controls on mobile */
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* Show mobile controls on mobile */
+    .mobile-only {
+        display: flex !important;
+    }
+    
+    .mute-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+}
+
 @media (max-width: 576px) {
     .search-container {
         width: 200px;
@@ -592,6 +697,11 @@ body {
         min-width: auto;
         width: 100%;
         justify-content: center;
+    }
+    
+    .mute-btn {
+        width: 40px;
+        height: 40px;
     }
     
     .song-card {
