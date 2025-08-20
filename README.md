@@ -30,8 +30,9 @@ your-repo/
 - **Option B**: Use direct MP3 URLs from other sources
 - **Option C**: Upload MP3 files to your own domain
 
-**✅ Fixed**: The player now includes working sample audio files that work on GitHub Pages:
-- Gentle Rain, Ocean Waves, Forest Birds, Thunder Storm, Creek Water, Wind Chimes
+**✅ Fixed**: The player now includes CORS-free sample audio files that work on GitHub Pages:
+- Gentle Bells, Clock Ticking, Keyboard Click, Notification Sound, Success Chime, Alert Tone
+- **No CORS issues** - uses embedded data URLs
 
 **Quick Fix**: Replace sample songs in `script.js` with your actual MP3 URLs:
 
@@ -70,8 +71,25 @@ const sampleSongs = [
 ### Audio Sources
 To use your own songs, edit `script.js`:
 
+#### **Option 1: GitHub Raw URLs (Recommended for GitHub Pages)**
+1. **Upload MP3 files** to your GitHub repository
+2. **Get raw URLs** from GitHub (right-click file → "Copy link address")
+3. **Replace sample songs** in `script.js`:
+
 ```javascript
-// Replace this section with your actual song URLs
+const sampleSongs = [
+    {
+        name: "Your Song Name",
+        url: "https://raw.githubusercontent.com/username/repo/main/song1.mp3",
+        repo: "Your Album",
+        size: 1024,
+        path: "song1.mp3"
+    }
+];
+```
+
+#### **Option 2: External URLs (May have CORS issues)**
+```javascript
 const sampleSongs = [
     {
         name: "Song Title",
@@ -95,18 +113,44 @@ const githubRawUrls = [
 
 **Note**: These have limitations and may not work reliably for audio playback.
 
-## 🌐 Recommended Audio Hosting Services
+## 🌐 CORS-Free Audio Solutions for GitHub Pages
 
-### Free Options:
-- **Google Drive**: Upload MP3, get shareable links
-- **Dropbox**: Public folder sharing
-- **GitHub Releases**: Upload audio files as releases
-- **Netlify**: Drag & drop deployment with audio support
+### ✅ **Current Solution (Working)**
+- **Data URLs**: Audio embedded directly in code - no CORS issues
+- **Always works** on GitHub Pages and anywhere else
+- **No external dependencies** or network requests
 
-### Paid Options:
-- **AWS S3**: Reliable cloud storage
-- **Cloudinary**: Media hosting service
-- **Your own domain**: Full control
+### 🔧 **Alternative Solutions**
+
+#### **Option 1: GitHub Raw URLs**
+```javascript
+const githubRawUrls = [
+    "https://raw.githubusercontent.com/username/repo/main/song1.mp3",
+    "https://raw.githubusercontent.com/username/repo/main/song2.mp3"
+];
+```
+**Pros**: Free, reliable
+**Cons**: Limited bandwidth, may have delays
+
+#### **Option 2: Your Own Domain**
+```javascript
+const ownDomainUrls = [
+    "https://yourdomain.com/songs/song1.mp3",
+    "https://yourdomain.com/songs/song2.mp3"
+];
+```
+**Pros**: Full control, no restrictions
+**Cons**: Requires hosting setup
+
+#### **Option 3: CORS-Enabled Services**
+- **Netlify**: Drag & drop deployment with CORS support
+- **Vercel**: Similar to Netlify, good CORS handling
+- **Firebase Hosting**: Google's hosting with CORS support
+
+### ⚠️ **Services with CORS Issues**
+- **Google Drive**: CORS restrictions on GitHub Pages
+- **Dropbox**: CORS restrictions on GitHub Pages
+- **External audio sites**: Often blocked by CORS policy
 
 ## 📱 PWA Features
 

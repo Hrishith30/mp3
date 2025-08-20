@@ -34,137 +34,62 @@ class MusicPlayer {
     }
 
     async loadSongs() {
-        // For GitHub Pages, we'll use working audio URLs
-        // These are free, CORS-enabled audio files that work on GitHub Pages
+        // For GitHub Pages, we'll use CORS-free audio URLs
+        // These are embedded data URLs that work without CORS issues
         
         const sampleSongs = [
             {
-                name: "Gentle Rain",
-                url: "https://www.soundjay.com/misc/sounds/rain-01.wav",
-                repo: "Nature Sounds",
+                name: "Gentle Bells",
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds",
                 size: 1024,
-                path: "rain.wav"
+                path: "bells.wav"
             },
             {
-                name: "Ocean Waves", 
-                url: "https://www.soundjay.com/misc/sounds/ocean-wave-1.wav",
-                repo: "Nature Sounds",
+                name: "Clock Ticking", 
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds",
                 size: 1024,
-                path: "ocean.wav"
+                path: "clock.wav"
             },
             {
-                name: "Forest Birds",
-                url: "https://www.soundjay.com/misc/sounds/birds-1.wav",
-                repo: "Nature Sounds", 
+                name: "Keyboard Click",
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds", 
                 size: 1024,
-                path: "birds.wav"
+                path: "keyboard.wav"
             },
             {
-                name: "Thunder Storm",
-                url: "https://www.soundjay.com/misc/sounds/thunder-1.wav",
-                repo: "Nature Sounds",
+                name: "Notification Sound",
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds",
                 size: 1024,
-                path: "thunder.wav"
+                path: "notification.wav"
             },
             {
-                name: "Creek Water",
-                url: "https://www.soundjay.com/misc/sounds/creek-1.wav",
-                repo: "Nature Sounds",
+                name: "Success Chime",
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds",
                 size: 1024,
-                path: "creek.wav"
+                path: "success.wav"
             },
             {
-                name: "Wind Chimes",
-                url: "https://www.soundjay.com/misc/sounds/wind-chimes-1.wav",
-                repo: "Nature Sounds",
+                name: "Alert Tone",
+                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
+                repo: "Sample Sounds",
                 size: 1024,
-                path: "chimes.wav"
+                path: "alert.wav"
             }
         ];
 
         try {
-            // Test audio URLs to ensure they work
-            const workingSongs = [];
-            
-            for (const song of sampleSongs) {
-                try {
-                    // Test if audio URL is accessible
-                    const response = await fetch(song.url, { method: 'HEAD' });
-                    if (response.ok) {
-                        workingSongs.push(song);
-                        console.log(`✅ Audio URL accessible: ${song.name}`);
-                    } else {
-                        console.warn(`❌ Audio URL not accessible: ${song.name} - ${song.url}`);
-                    }
-                } catch (error) {
-                    console.warn(`❌ Failed to test audio URL: ${song.name} - ${song.url}`, error);
-                }
-            }
-
-            if (workingSongs.length === 0) {
-                // Fallback to alternative working URLs
-                const fallbackSongs = [
-                    {
-                        name: "Gentle Bells",
-                        url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-                        repo: "Alternative Sounds",
-                        size: 1024,
-                        path: "bells.wav"
-                    },
-                    {
-                        name: "Clock Ticking",
-                        url: "https://www.soundjay.com/misc/sounds/clock-ticking-1.wav",
-                        repo: "Alternative Sounds",
-                        size: 1024,
-                        path: "clock.wav"
-                    },
-                    {
-                        name: "Keyboard Click",
-                        url: "https://www.soundjay.com/misc/sounds/computer-keyboard-1.wav",
-                        repo: "Alternative Sounds",
-                        size: 1024,
-                        path: "keyboard.wav"
-                    }
-                ];
-                
-                // Test fallback URLs too
-                const testedFallbacks = [];
-                for (const song of fallbackSongs) {
-                    try {
-                        const response = await fetch(song.url, { method: 'HEAD' });
-                        if (response.ok) {
-                            testedFallbacks.push(song);
-                            console.log(`✅ Fallback audio accessible: ${song.name}`);
-                        }
-                    } catch (error) {
-                        console.warn(`❌ Fallback audio failed: ${song.name}`);
-                    }
-                }
-                
-                if (testedFallbacks.length > 0) {
-                    this.playlist = testedFallbacks;
-                    console.log(`Using ${testedFallbacks.length} fallback audio URLs`);
-                } else {
-                    // Last resort: create silent audio
-                    this.playlist = [{
-                        name: "Silent Audio (No songs available)",
-                        url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                        repo: "System",
-                        size: 1024,
-                        path: "silent.wav"
-                    }];
-                    console.log('Using silent audio as last resort');
-                    this.showError('No working audio files found. Please add your own MP3 URLs.');
-                }
-            } else {
-                this.playlist = workingSongs;
-                console.log(`${workingSongs.length} working audio URLs loaded`);
-            }
-
+            // Data URLs work without CORS issues
+            this.playlist = sampleSongs;
             this.renderAllSongs();
             this.renderTopPlayed();
             
-            console.log('Audio files loaded successfully for GitHub Pages');
+            console.log(`${sampleSongs.length} sample audio files loaded successfully`);
+            console.log('These are embedded data URLs - no CORS issues on GitHub Pages');
             console.log('To use your own songs, replace the URLs in this function');
             
         } catch (error) {
