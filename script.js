@@ -11,17 +11,11 @@ class MusicPlayer {
         this.repeatMode = 'all'; // 'all', 'one'
         this.originalPlaylist = []; // Keep original order for shuffle
         this.isDragging = false; // Track if user is dragging seek handle
-        this.audioContext = null;
-        this.audioSource = null;
-        this.isPageVisible = true;
-        this.loadingProgress = 0;
         
-        this.showLoadingScreen();
         this.initializePlayer();
         this.loadSongs();
         this.loadUserData();
         this.setupEventListeners();
-        this.setupBackgroundAudio();
     }
 
     initializePlayer() {
@@ -34,67 +28,78 @@ class MusicPlayer {
     }
 
     async loadSongs() {
-        // For GitHub Pages, we'll use CORS-free audio URLs
-        // These are embedded data URLs that work without CORS issues
-        
-        const sampleSongs = [
-            {
-                name: "Gentle Bells",
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds",
-                size: 1024,
-                path: "bells.wav"
-            },
-            {
-                name: "Clock Ticking", 
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds",
-                size: 1024,
-                path: "clock.wav"
-            },
-            {
-                name: "Keyboard Click",
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds", 
-                size: 1024,
-                path: "keyboard.wav"
-            },
-            {
-                name: "Notification Sound",
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds",
-                size: 1024,
-                path: "notification.wav"
-            },
-            {
-                name: "Success Chime",
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds",
-                size: 1024,
-                path: "success.wav"
-            },
-            {
-                name: "Alert Tone",
-                url: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT",
-                repo: "Sample Sounds",
-                size: 1024,
-                path: "alert.wav"
-            }
+        const repositories = [
+            'https://api.github.com/repos/Hrishith30/player/contents/',
+            'https://api.github.com/repos/Hrishith30/player1/contents/',
+            'https://api.github.com/repos/Hrishith30/player2/contents/'
         ];
 
         try {
-            // Data URLs work without CORS issues
-            this.playlist = sampleSongs;
+            const allSongs = [];
+            
+            for (const repo of repositories) {
+                try {
+                    const response = await fetch(repo);
+                    if (response.ok) {
+                        const contents = await response.json();
+                        const songs = contents
+                            .filter(item => item.type === 'file' && item.name.toLowerCase().endsWith('.mp3'))
+                            .map(item => {
+                                // Clean up song names by removing common website suffixes
+                                let cleanName = item.name.replace('.mp3', '');
+                                
+                                // Remove common website suffixes that make names too long
+                                const websiteSuffixes = [
+                                    ' - SenSongsMp3.Co',
+                                    ' - SenSongsMp3',
+                                    ' - SenSongs',
+                                    ' - Mp3.Co',
+                                    ' - Mp3',
+                                    ' - SongsMp3',
+                                    ' - Songs',
+                                    ' - Co',
+                                    ' - Download',
+                                    ' - Free',
+                                    ' - 320kbps',
+                                    ' - 128kbps',
+                                    ' - High Quality'
+                                ];
+                                
+                                websiteSuffixes.forEach(suffix => {
+                                    if (cleanName.includes(suffix)) {
+                                        cleanName = cleanName.replace(suffix, '');
+                                    }
+                                });
+                                
+                                // Clean up repo names too
+                                let cleanRepo = repo.split('/')[5];
+                                if (cleanRepo && cleanRepo.length > 20) {
+                                    cleanRepo = cleanRepo.substring(0, 20);
+                                }
+                                
+                                return {
+                                    name: cleanName,
+                                    url: item.download_url,
+                                    repo: cleanRepo,
+                                    size: item.size,
+                                    path: item.path
+                                };
+                            });
+                        allSongs.push(...songs);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to fetch from ${repo}:`, error);
+                }
+            }
+
+            // Sort songs alphabetically by name
+            this.playlist = allSongs.sort((a, b) => a.name.localeCompare(b.name));
             this.renderAllSongs();
             this.renderTopPlayed();
             
-            console.log(`${sampleSongs.length} sample audio files loaded successfully`);
-            console.log('These are embedded data URLs - no CORS issues on GitHub Pages');
-            console.log('To use your own songs, replace the URLs in this function');
-            
         } catch (error) {
             console.error('Error loading songs:', error);
-            this.showError('Failed to load songs. Check console for details.');
+            this.showError('Failed to load songs. Please try again later.');
         }
     }
 
@@ -197,9 +202,6 @@ class MusicPlayer {
                 this.savePlaybackState();
             }
         }, 5000); // Save every 5 seconds while playing
-        
-        // Page visibility API for background audio
-        document.addEventListener('visibilitychange', () => this.handleVisibilityChange());
     }
 
         setupSeekFunctionality() {
@@ -529,9 +531,6 @@ class MusicPlayer {
             }
             
             currentTime.textContent = this.formatTime(this.audioPlayer.currentTime);
-            
-            // Update media session for background controls
-            this.updateMediaSession();
         }
     }
 
@@ -693,229 +692,6 @@ class MusicPlayer {
         console.log('Clear search completed');
     }
 
-    setupBackgroundAudio() {
-        // Initialize Web Audio API for better background playback
-        try {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            console.log('Web Audio API initialized for background playback');
-        } catch (error) {
-            console.log('Web Audio API not supported, using standard audio');
-        }
-
-        // Set audio properties for background playback
-        this.audioPlayer.preload = 'auto';
-        this.audioPlayer.crossOrigin = 'anonymous';
-        
-        // Enable background audio on mobile devices
-        this.audioPlayer.setAttribute('playsinline', '');
-        this.audioPlayer.setAttribute('webkit-playsinline', '');
-        
-        // Set audio session category for iOS
-        if (this.audioPlayer.webkitSetPresentationOptions) {
-            this.audioPlayer.webkitSetPresentationOptions('playback');
-        }
-        
-        console.log('Background audio setup completed');
-    }
-
-    showLoadingScreen() {
-        this.loadingProgress = 0;
-        this.updateLoadingProgress(0);
-        
-        // Simulate loading progress over 3 seconds
-        const loadingInterval = setInterval(() => {
-            this.loadingProgress += 1;
-            const progress = Math.min(this.loadingProgress, 100);
-            this.updateLoadingProgress(progress);
-            
-            if (this.loadingProgress >= 100) {
-                clearInterval(loadingInterval);
-                setTimeout(() => {
-                    this.hideLoadingScreen();
-                }, 500); // Wait 500ms after reaching 100%
-            }
-        }, 30); // Update every 30ms for smooth progress (3000ms / 100 = 30ms)
-    }
-
-    updateLoadingProgress(progress) {
-        const progressBar = document.querySelector('.progress-bar-fill');
-        const loadingText = document.querySelector('.loading-text');
-        
-        if (progressBar && loadingText) {
-            progressBar.style.width = `${progress}%`;
-            loadingText.textContent = `${Math.round(progress)}%`;
-            
-            // Update loading subtitle based on progress
-            const subtitle = document.querySelector('.loading-subtitle');
-            if (subtitle) {
-                if (progress < 30) {
-                    subtitle.textContent = 'Initializing player...';
-                } else if (progress < 60) {
-                    subtitle.textContent = 'Loading music library...';
-                } else if (progress < 90) {
-                    subtitle.textContent = 'Preparing interface...';
-                } else {
-                    subtitle.textContent = 'Almost ready...';
-                }
-            }
-        }
-    }
-
-    hideLoadingScreen() {
-        const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen) {
-            loadingScreen.classList.add('hidden');
-            
-            // Remove loading screen from DOM after animation
-            setTimeout(() => {
-                if (loadingScreen.parentNode) {
-                    loadingScreen.parentNode.removeChild(loadingScreen);
-                }
-            }, 500);
-            
-            console.log('Loading screen hidden, music player ready');
-        }
-    }
-
-    handleVisibilityChange() {
-        this.isPageVisible = !document.hidden;
-        
-        if (this.isPageVisible) {
-            // Page became visible - resume audio context if needed
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume().then(() => {
-                    console.log('Audio context resumed after page became visible');
-                });
-            }
-            
-            // Resume playback if it was playing before
-            if (this.isPlaying && this.audioPlayer.paused) {
-                this.audioPlayer.play().catch(error => {
-                    console.log('Failed to resume playback:', error);
-                });
-            }
-        } else {
-            // Page became hidden - ensure audio continues
-            console.log('Page hidden, audio will continue in background');
-            
-            // Keep audio context active
-            if (this.audioContext && this.audioContext.state === 'running') {
-                // Audio context will continue running in background
-            }
-        }
-    }
-
-    async playSong(song) {
-        try {
-            // Resume audio context if suspended
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                await this.audioContext.resume();
-            }
-            
-            this.currentSong = song;
-            this.audioPlayer.src = song.url;
-            
-            // Update UI
-            this.updateCurrentSongDisplay();
-            this.updateSongCardsState();
-            
-            // Request audio focus for background playback
-            this.requestAudioFocus();
-            
-            // Add error event listener for better error handling
-            const errorHandler = (e) => {
-                console.error('Audio loading error:', e);
-                const errorMessage = this.getAudioErrorMessage(e);
-                this.showError(errorMessage);
-                this.audioPlayer.removeEventListener('error', errorHandler);
-            };
-            
-            this.audioPlayer.addEventListener('error', errorHandler);
-            
-            // Add timeout for audio loading
-            const loadingTimeout = setTimeout(() => {
-                if (!this.isPlaying) {
-                    this.showError('Audio loading timeout. Please try another song.');
-                }
-            }, 15000); // 15 seconds timeout
-            
-            // Play the song
-            await this.audioPlayer.play();
-            this.isPlaying = true;
-            this.updatePlayPauseButton();
-            
-            // Clear timeout and remove error listener on success
-            clearTimeout(loadingTimeout);
-            this.audioPlayer.removeEventListener('error', errorHandler);
-            
-            // Increment play count for top played
-            this.incrementPlayCount(song);
-            
-            console.log(`Now playing: ${song.name}`);
-            
-        } catch (error) {
-            console.error('Error playing song:', error);
-            this.showError('Error playing song. Please try again.');
-        }
-    }
-
-    requestAudioFocus() {
-        // Request audio focus for background playback
-        if (navigator.mediaSession) {
-            navigator.mediaSession.setActionHandler('play', () => this.togglePlayPause());
-            navigator.mediaSession.setActionHandler('pause', () => this.togglePlayPause());
-            navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
-            navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-            navigator.mediaSession.setActionHandler('seekto', (details) => {
-                if (details.seekTime) {
-                    this.audioPlayer.currentTime = details.seekTime;
-                }
-            });
-            
-            // Update media session metadata
-            if (this.currentSong) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: this.currentSong.name,
-                    artist: this.currentSong.repo,
-                    album: 'Music Player',
-                    artwork: [
-                        { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }
-                    ]
-                });
-            }
-            
-            // Update playback state
-            navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
-        }
-        
-        // iOS-specific audio session handling
-        if (this.audioPlayer.webkitSetPresentationOptions) {
-            this.audioPlayer.webkitSetPresentationOptions('playback');
-        }
-        
-        // Android-specific audio focus
-        if (navigator.mediaSession && navigator.mediaSession.setActionHandler) {
-            // Request audio focus
-            console.log('Audio focus requested for background playback');
-        }
-    }
-
-    updateMediaSession() {
-        if (navigator.mediaSession && this.currentSong) {
-            // Update playback state
-            navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
-            
-            // Update position state
-            if (this.audioPlayer.duration) {
-                navigator.mediaSession.setPositionState({
-                    duration: this.audioPlayer.duration,
-                    position: this.audioPlayer.currentTime,
-                    playbackRate: 1.0
-                });
-            }
-        }
-    }
-
     savePlaybackState() {
         if (this.currentSong && this.audioPlayer.src) {
             const playbackState = {
@@ -948,8 +724,6 @@ class MusicPlayer {
                     // Update UI to show the saved song
                     this.updateCurrentSongDisplay();
                     this.updateSongCardsState();
-                    
-
                     
                     // Set the audio source and resume from saved position
                     this.audioPlayer.src = this.currentSong.url;
@@ -1112,36 +886,6 @@ class MusicPlayer {
                 errorDiv.parentNode.removeChild(errorDiv);
             }
         }, 5000);
-    }
-
-    getAudioErrorMessage(error) {
-        // Provide user-friendly error messages based on error type
-        if (error.target && error.target.error) {
-            const errorCode = error.target.error.code;
-            switch (errorCode) {
-                case MediaError.MEDIA_ERR_ABORTED:
-                    return 'Audio playback was aborted. Please try again.';
-                case MediaError.MEDIA_ERR_NETWORK:
-                    return 'Network error. Please check your connection and try again.';
-                case MediaError.MEDIA_ERR_DECODE:
-                    return 'Audio format not supported. Please try another song.';
-                case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    return 'Audio source not supported. Please try another song.';
-                default:
-                    return 'Audio playback error. Please try another song.';
-            }
-        }
-        
-        // Generic error messages
-        if (error.message && error.message.includes('timeout')) {
-            return 'Audio loading timeout. Please try another song.';
-        }
-        
-        if (error.message && error.message.includes('CORS')) {
-            return 'Audio access denied. Please try another song.';
-        }
-        
-        return 'Audio playback failed. Please try another song.';
     }
 
 
