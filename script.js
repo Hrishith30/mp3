@@ -18,6 +18,9 @@ class MusicPlayer {
         this.loadSongs();
         this.loadUserData();
         this.setupEventListeners();
+        
+        // Check device type and log for debugging
+        this.checkDeviceType();
     }
 
     initializePlayer() {
@@ -147,9 +150,15 @@ class MusicPlayer {
         // Mute button control (mobile)
         const muteBtn = document.getElementById('muteBtn');
         if (muteBtn) {
-            muteBtn.addEventListener('click', () => {
+            console.log('🔇 Mute button found, adding event listener');
+            muteBtn.addEventListener('click', (e) => {
+                console.log('🔇 Mute button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleMute();
             });
+        } else {
+            console.log('⚠️ Mute button not found in DOM');
         }
 
         // Progress bar seek functionality
@@ -221,6 +230,12 @@ class MusicPlayer {
                 this.savePlaybackState();
             }
         }, 5000); // Save every 5 seconds while playing
+        
+        // Handle window resize for orientation changes on tablets
+        window.addEventListener('resize', () => {
+            console.log('🔄 Window resized, checking device type...');
+            this.checkDeviceType();
+        });
     }
 
         setupSeekFunctionality() {
@@ -896,8 +911,11 @@ class MusicPlayer {
     }
 
     toggleMute() {
+        console.log('🔇 toggleMute called, current state:', this.isMuted);
+        
         if (this.isMuted) {
             // Unmute: restore previous volume
+            console.log('🔊 Unmuting, restoring volume to:', this.lastVolume);
             this.audioPlayer.volume = this.lastVolume;
             this.isMuted = false;
             
@@ -906,6 +924,9 @@ class MusicPlayer {
             if (muteBtn) {
                 muteBtn.classList.remove('muted');
                 muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                console.log('🔊 Mute button updated to unmuted state');
+            } else {
+                console.log('⚠️ Mute button not found when trying to update');
             }
             
             // Update volume slider if it exists (desktop)
@@ -915,6 +936,7 @@ class MusicPlayer {
             }
         } else {
             // Mute: save current volume and set to 0
+            console.log('🔇 Muting, saving current volume:', this.audioPlayer.volume);
             this.lastVolume = this.audioPlayer.volume;
             this.audioPlayer.volume = 0;
             this.isMuted = true;
@@ -924,6 +946,9 @@ class MusicPlayer {
             if (muteBtn) {
                 muteBtn.classList.add('muted');
                 muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                console.log('🔇 Mute button updated to muted state');
+            } else {
+                console.log('⚠️ Mute button not found when trying to update');
             }
             
             // Update volume slider if it exists (desktop)
@@ -931,6 +956,35 @@ class MusicPlayer {
             if (volumeSlider) {
                 volumeSlider.value = 0;
             }
+        }
+        
+        console.log('🔇 Final mute state:', this.isMuted, 'Volume:', this.audioPlayer.volume);
+    }
+
+    checkDeviceType() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const userAgent = navigator.userAgent;
+        
+        console.log('📱 Device check:');
+        console.log('   Screen dimensions:', width + 'x' + height);
+        console.log('   User agent:', userAgent);
+        console.log('   Is mobile/tablet:', width <= 1200);
+        
+        // Check if mute button and volume slider exist
+        const muteBtn = document.getElementById('muteBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        
+        console.log('   Mute button exists:', !!muteBtn);
+        console.log('   Volume slider exists:', !!volumeSlider);
+        
+        if (muteBtn) {
+            console.log('   Mute button classes:', muteBtn.className);
+            console.log('   Mute button display:', window.getComputedStyle(muteBtn).display);
+        }
+        
+        if (volumeSlider) {
+            console.log('   Volume slider display:', window.getComputedStyle(volumeSlider.parentElement).display);
         }
     }
 
