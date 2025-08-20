@@ -153,15 +153,44 @@ class MusicPlayer {
 
             // Sort songs alphabetically by name
             this.playlist = allSongs.sort((a, b) => a.name.localeCompare(b.name));
+            
+            // Initialize originalPlaylist for shuffle functionality
+            this.originalPlaylist = [...this.playlist];
+            
             console.log(`🎵 Loaded ${this.playlist.length} songs from GitHub repositories`);
             console.log(`🎵 First few songs:`, this.playlist.slice(0, 3));
+            console.log(`📁 Original playlist initialized with ${this.originalPlaylist.length} songs`);
+            
             this.renderAllSongs();
             this.renderTopPlayed();
+            
+            // After songs are loaded, restore user data to ensure shuffle/repeat states are properly applied
+            this.restorePlaylistState();
             
         } catch (error) {
             console.error('Error loading songs:', error);
             this.showError('Failed to load songs. Please try again later.');
         }
+    }
+
+    // Restore playlist state after songs are loaded
+    restorePlaylistState() {
+        console.log(`🔄 Restoring playlist state after songs loaded`);
+        
+        // If shuffle was enabled, re-shuffle the playlist
+        if (this.shuffleEnabled && this.originalPlaylist.length > 0) {
+            console.log(`🔀 Re-shuffling playlist to match saved shuffle state`);
+            this.shufflePlaylist();
+        }
+        
+        // Save the current state to ensure originalPlaylist is persisted
+        this.saveUserData();
+        
+        console.log(`🔄 Playlist state restored:`);
+        console.log(`   Shuffle enabled:`, this.shuffleEnabled);
+        console.log(`   Repeat mode:`, this.repeatMode);
+        console.log(`   Original playlist length:`, this.originalPlaylist.length);
+        console.log(`   Current playlist length:`, this.playlist.length);
     }
 
     setupEventListeners() {
@@ -614,20 +643,47 @@ class MusicPlayer {
         console.log('Shuffle button element:', shuffleBtn);
         console.log('Shuffle button classes before:', shuffleBtn.className);
         
-        if (this.shuffleEnabled) {
-            // Save original playlist and shuffle
-            this.originalPlaylist = [...this.playlist];
-            this.shufflePlaylist();
-            shuffleBtn.classList.add('active');
-            console.log('Added active class, classes after:', shuffleBtn.className);
-        } else {
-            // Restore original playlist
-            this.playlist = [...this.originalPlaylist];
-            shuffleBtn.classList.remove('active');
-            console.log('Removed active class, classes after:', shuffleBtn.className);
+        try {
+            if (this.shuffleEnabled) {
+                // Save original playlist and shuffle
+                if (this.originalPlaylist.length === 0 && this.playlist.length > 0) {
+                    // If originalPlaylist is empty but we have a current playlist, initialize it
+                    this.originalPlaylist = [...this.playlist];
+                    console.log('🔀 Initialized original playlist from current playlist');
+                }
+                
+                if (this.originalPlaylist.length > 0) {
+                    this.shufflePlaylist();
+                    shuffleBtn.classList.add('active');
+                    console.log('Added active class, classes after:', shuffleBtn.className);
+                } else {
+                    console.error('❌ Cannot enable shuffle: no original playlist available');
+                    this.shuffleEnabled = false; // Revert the change
+                    return;
+                }
+            } else {
+                // Restore original playlist
+                if (this.originalPlaylist.length > 0) {
+                    this.playlist = [...this.originalPlaylist];
+                    shuffleBtn.classList.remove('active');
+                    console.log('Removed active class, classes after:', shuffleBtn.className);
+                    console.log('🔀 Original playlist order restored');
+                } else {
+                    console.error('❌ Cannot disable shuffle: no original playlist available');
+                    this.shuffleEnabled = true; // Revert the change
+                    return;
+                }
+            }
+            
+            // Save the state
+            this.saveUserData();
+            
+        } catch (error) {
+            console.error('❌ Error in toggleShuffle:', error);
+            // Revert the change on error
+            this.shuffleEnabled = !this.shuffleEnabled;
+            console.log('🔀 Shuffle state reverted due to error:', this.shuffleEnabled);
         }
-        
-        this.saveUserData();
     }
 
     shufflePlaylist() {
@@ -640,19 +696,32 @@ class MusicPlayer {
     toggleRepeat() {
         const repeatBtn = document.getElementById('repeatBtn');
         
-        if (this.repeatMode === 'all') {
-            this.repeatMode = 'one';
-            repeatBtn.classList.add('active');
-            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            repeatBtn.title = 'Repeat Single Song';
-        } else {
-            this.repeatMode = 'all';
-            repeatBtn.classList.remove('active');
-            repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
-            repeatBtn.title = 'Repeat All Songs';
+        try {
+            if (this.repeatMode === 'all') {
+                this.repeatMode = 'one';
+                repeatBtn.classList.add('active');
+                repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+                repeatBtn.title = 'Repeat Single Song';
+                console.log('🔁 Repeat mode changed to: one (single song)');
+            } else {
+                this.repeatMode = 'all';
+                repeatBtn.classList.remove('active');
+                repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+                repeatBtn.title = 'Repeat All Songs';
+                console.log('🔁 Repeat mode changed to: all (all songs)');
+            }
+            
+            // Save the state
+            this.saveUserData();
+            
+            console.log(`🔁 Repeat mode toggled successfully to: ${this.repeatMode}`);
+            
+        } catch (error) {
+            console.error('❌ Error in toggleRepeat:', error);
+            // Revert the change on error
+            this.repeatMode = this.repeatMode === 'all' ? 'all' : 'one';
+            console.log('🔁 Repeat mode reverted due to error:', this.repeatMode);
         }
-        
-        this.saveUserData();
     }
 
     handleSongEnd() {
@@ -1307,9 +1376,13 @@ class MusicPlayer {
         const savedTopPlayed = localStorage.getItem(`musicPlayer_topPlayed_${deviceId}`);
         const savedShuffle = localStorage.getItem(`musicPlayer_shuffle_${deviceId}`);
         const savedRepeat = localStorage.getItem(`musicPlayer_repeat_${deviceId}`);
+        const savedOriginalPlaylist = localStorage.getItem(`musicPlayer_originalPlaylist_${deviceId}`);
         
         console.log(`🔍 Loading user data for device: ${deviceId}`);
         console.log(`📊 Saved top played data:`, savedTopPlayed);
+        console.log(`🔀 Saved shuffle state:`, savedShuffle);
+        console.log(`🔁 Saved repeat mode:`, savedRepeat);
+        console.log(`📁 Saved original playlist:`, savedOriginalPlaylist ? 'Yes' : 'No');
         
         if (savedTopPlayed) {
             this.topPlayed = JSON.parse(savedTopPlayed);
@@ -1318,28 +1391,80 @@ class MusicPlayer {
             console.log(`⚠️ No saved top played data found`);
         }
 
-        if (savedShuffle) {
+        // Restore shuffle state
+        if (savedShuffle !== null) {
             this.shuffleEnabled = JSON.parse(savedShuffle);
-            if (this.shuffleEnabled) {
-                document.getElementById('shuffleBtn').classList.add('active');
+            console.log(`🔀 Shuffle state restored:`, this.shuffleEnabled);
+            
+            // Update shuffle button UI
+            const shuffleBtn = document.getElementById('shuffleBtn');
+            if (shuffleBtn) {
+                if (this.shuffleEnabled) {
+                    shuffleBtn.classList.add('active');
+                    console.log(`🔀 Shuffle button set to active state`);
+                } else {
+                    shuffleBtn.classList.remove('active');
+                    console.log(`🔀 Shuffle button set to inactive state`);
+                }
             }
+        } else {
+            console.log(`⚠️ No saved shuffle state found, using default: false`);
+            this.shuffleEnabled = false;
         }
 
-        if (savedRepeat) {
+        // Restore repeat mode
+        if (savedRepeat !== null) {
             this.repeatMode = savedRepeat;
+            console.log(`🔁 Repeat mode restored:`, this.repeatMode);
+        } else {
+            console.log(`⚠️ No saved repeat mode found, using default: 'all'`);
+            this.repeatMode = 'all';
         }
         
-        // Set up repeat button state (including default 'all' mode)
-        const repeatBtn = document.getElementById('repeatBtn');
-        if (this.repeatMode === 'all') {
-            repeatBtn.classList.remove('active');
-            repeatBtn.title = 'Repeat All Songs';
+        // Restore original playlist for shuffle functionality
+        if (savedOriginalPlaylist !== null) {
+            this.originalPlaylist = JSON.parse(savedOriginalPlaylist);
+            console.log(`📁 Original playlist restored with ${this.originalPlaylist.length} songs`);
+            
+            // If shuffle was enabled, we need to re-shuffle the current playlist
+            if (this.shuffleEnabled && this.playlist.length > 0) {
+                console.log(`🔀 Re-shuffling playlist after restoration`);
+                this.shufflePlaylist();
+            }
         } else {
-            // 'one' mode
-            repeatBtn.classList.add('active');
-            repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
-            repeatBtn.title = 'Repeat Single Song';
+            console.log(`⚠️ No saved original playlist found, shuffle may not work properly`);
+            // Initialize originalPlaylist with current playlist if available
+            if (this.playlist.length > 0) {
+                this.originalPlaylist = [...this.playlist];
+                console.log(`📁 Initialized original playlist with current playlist`);
+            }
         }
+        
+        // Set up repeat button state with proper icon and title
+        const repeatBtn = document.getElementById('repeatBtn');
+        if (repeatBtn) {
+            if (this.repeatMode === 'all') {
+                repeatBtn.classList.remove('active');
+                repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
+                repeatBtn.title = 'Repeat All Songs';
+                console.log(`🔁 Repeat button set to 'all' mode`);
+            } else {
+                // 'one' mode
+                repeatBtn.classList.add('active');
+                repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
+                repeatBtn.title = 'Repeat Single Song';
+                console.log(`🔁 Repeat button set to 'one' mode`);
+            }
+        }
+        
+        // Log final states
+        console.log(`🔍 Final states after restoration:`);
+        console.log(`   Shuffle enabled:`, this.shuffleEnabled);
+        console.log(`   Repeat mode:`, this.repeatMode);
+        console.log(`   Shuffle button active:`, document.getElementById('shuffleBtn')?.classList.contains('active'));
+        console.log(`   Repeat button active:`, document.getElementById('repeatBtn')?.classList.contains('active'));
+        console.log(`   Original playlist length:`, this.originalPlaylist.length);
+        console.log(`   Current playlist length:`, this.playlist.length);
     }
 
     saveUserData() {
@@ -1348,10 +1473,16 @@ class MusicPlayer {
         localStorage.setItem(`musicPlayer_shuffle_${deviceId}`, JSON.stringify(this.shuffleEnabled));
         localStorage.setItem(`musicPlayer_repeat_${deviceId}`, this.repeatMode);
         
+        // Also save the original playlist for shuffle functionality
+        if (this.originalPlaylist.length > 0) {
+            localStorage.setItem(`musicPlayer_originalPlaylist_${deviceId}`, JSON.stringify(this.originalPlaylist));
+        }
+        
         console.log(`💾 User data saved for device: ${deviceId}`);
         console.log(`📊 Top played songs saved:`, this.topPlayed);
         console.log(`🔀 Shuffle state saved:`, this.shuffleEnabled);
         console.log(`🔁 Repeat mode saved:`, this.repeatMode);
+        console.log(`📁 Original playlist saved:`, this.originalPlaylist.length > 0 ? 'Yes' : 'No');
     }
 
     getDeviceId() {
@@ -1454,6 +1585,46 @@ class MusicPlayer {
         console.log('🔇 Final audio muted property:', this.audioPlayer.muted);
     }
 
+    // Debug method to test shuffle and repeat functionality
+    testShuffleAndRepeat() {
+        console.log('🧪 === TESTING SHUFFLE AND REPEAT ===');
+        console.log(`🔀 Current shuffle state: ${this.shuffleEnabled}`);
+        console.log(`🔁 Current repeat mode: ${this.repeatMode}`);
+        console.log(`📁 Original playlist length: ${this.originalPlaylist.length}`);
+        console.log(`📁 Current playlist length: ${this.playlist.length}`);
+        
+        // Test shuffle functionality
+        if (this.originalPlaylist.length > 0) {
+            console.log('🧪 Testing shuffle toggle...');
+            const originalFirstSong = this.playlist[0];
+            this.toggleShuffle();
+            console.log(`🔀 Shuffle toggled to: ${this.shuffleEnabled}`);
+            console.log(`📁 First song before shuffle: ${originalFirstSong.name}`);
+            console.log(`📁 First song after shuffle: ${this.playlist[0].name}`);
+            
+            // Toggle back to test restoration
+            if (this.shuffleEnabled) {
+                console.log('🧪 Testing shuffle restoration...');
+                this.toggleShuffle();
+                console.log(`🔀 Shuffle toggled back to: ${this.shuffleEnabled}`);
+                console.log(`📁 First song after restoration: ${this.playlist[0].name}`);
+                console.log(`📁 Matches original: ${this.playlist[0].name === originalFirstSong.name ? 'YES' : 'NO'}`);
+            }
+        }
+        
+        // Test repeat functionality
+        console.log('🧪 Testing repeat toggle...');
+        const originalRepeatMode = this.repeatMode;
+        this.toggleRepeat();
+        console.log(`🔁 Repeat toggled from ${originalRepeatMode} to ${this.repeatMode}`);
+        
+        // Toggle back
+        this.toggleRepeat();
+        console.log(`🔁 Repeat toggled back to ${this.repeatMode}`);
+        
+        console.log('🧪 === END TESTING ===');
+    }
+
 
 }
 
@@ -1530,6 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             musicPlayer.forceMuteButtonVisibility();
         };
+        window.testShuffleAndRepeat = () => musicPlayer.testShuffleAndRepeat();
         
     }, 3000); // Exactly 3 seconds
 });
