@@ -11,6 +11,8 @@ class MusicPlayer {
         this.repeatMode = 'all'; // 'all', 'one'
         this.originalPlaylist = []; // Keep original order for shuffle
         this.isDragging = false; // Track if user is dragging seek handle
+        this.currentSearchQuery = ''; // Track current search query
+        this.isSearchActive = false; // Track if search is currently active
         
         this.initializePlayer();
         this.loadSongs();
@@ -353,6 +355,9 @@ class MusicPlayer {
         clearTimeout(this.searchTimeout);
         
         if (query.length < 2) {
+            // Reset search state when query is cleared
+            this.currentSearchQuery = '';
+            this.isSearchActive = false;
             this.renderAllSongs(); // Show all songs when search is cleared
             return;
         }
@@ -367,6 +372,10 @@ class MusicPlayer {
             song.name.toLowerCase().includes(query.toLowerCase()) ||
             song.repo.toLowerCase().includes(query.toLowerCase())
         );
+
+        // Set search state flags
+        this.currentSearchQuery = query;
+        this.isSearchActive = true;
 
         // Update the main All Songs section with filtered results
         this.renderFilteredSongs(results);
@@ -502,12 +511,12 @@ class MusicPlayer {
         
         if (this.repeatMode === 'all') {
             this.repeatMode = 'one';
-            repeatBtn.classList.remove('active');
+            repeatBtn.classList.add('active');
             repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
             repeatBtn.title = 'Repeat Single Song';
         } else {
             this.repeatMode = 'all';
-            repeatBtn.classList.add('active');
+            repeatBtn.classList.remove('active');
             repeatBtn.innerHTML = '<i class="fas fa-redo"></i>';
             repeatBtn.title = 'Repeat All Songs';
         }
@@ -553,14 +562,13 @@ class MusicPlayer {
         if (this.currentSong) {
             // Very aggressive truncation for bottom player to prevent layout issues
             const truncatedName = this.currentSong.name.length > 18 ? this.currentSong.name.substring(0, 18) + '...' : this.currentSong.name;
-            const truncatedRepo = this.currentSong.repo.length > 15 ? this.currentSong.repo.substring(0, 15) + '...' : this.currentSong.repo;
             
             document.getElementById('currentSongTitle').textContent = truncatedName;
-            document.getElementById('currentSongArtist').textContent = truncatedRepo;
+            document.getElementById('currentSongArtist').textContent = ''; // Empty - no text needed
             
             // Set full names as tooltips so users can see the complete names
             document.getElementById('currentSongTitle').title = this.currentSong.name;
-            document.getElementById('currentSongArtist').title = this.currentSong.repo;
+            document.getElementById('currentSongArtist').title = '';
         }
     }
 
@@ -734,6 +742,10 @@ class MusicPlayer {
         searchInput.value = '';
         console.log('Search input cleared');
         
+        // Reset search state flags
+        this.currentSearchQuery = '';
+        this.isSearchActive = false;
+        
         this.renderAllSongs();
         console.log('All songs rendered');
         
@@ -820,7 +832,7 @@ class MusicPlayer {
         const truncatedName = song.name.length > 20 ? song.name.substring(0, 20) + '...' : song.name;
         const truncatedRepo = song.repo.length > 15 ? song.repo.substring(0, 15) + '...' : song.repo;
         
-        return `
+        const cardHTML = `
             <div class="col-6 col-md-4 col-lg-3 col-xl-2 mb-3">
                 <div class="${cardClass}" 
                      onclick="musicPlayer.playSong('${song.url}', '${song.name}', '${song.repo}')"
@@ -836,10 +848,28 @@ class MusicPlayer {
                 </div>
             </div>
         `;
+        
+        console.log(`🎵 Creating card for: ${song.name}`);
+        console.log(`🎵 Card HTML:`, cardHTML);
+        
+        return cardHTML;
     }
 
     updateSongCardsState() {
-        // Update all song cards to reflect current playing state
+        // Update song cards to reflect current playing state while maintaining search state
+        if (this.isSearchActive && this.currentSearchQuery) {
+            // If search is active, re-apply the search filter
+            this.performSearch(this.currentSearchQuery);
+        } else {
+            // Otherwise show all songs
+            this.renderAllSongs();
+        }
+        this.renderTopPlayed();
+    }
+    
+    // Force refresh all song cards to remove any old repository text
+    forceRefreshAllCards() {
+        console.log('🔄 Force refreshing all song cards...');
         this.renderAllSongs();
         this.renderTopPlayed();
     }
@@ -883,11 +913,11 @@ class MusicPlayer {
         // Set up repeat button state (including default 'all' mode)
         const repeatBtn = document.getElementById('repeatBtn');
         if (this.repeatMode === 'all') {
-            repeatBtn.classList.add('active');
+            repeatBtn.classList.remove('active');
             repeatBtn.title = 'Repeat All Songs';
         } else {
             // 'one' mode
-            repeatBtn.classList.remove('active');
+            repeatBtn.classList.add('active');
             repeatBtn.innerHTML = '<i class="fas fa-redo-alt"></i>';
             repeatBtn.title = 'Repeat Single Song';
         }
@@ -1003,10 +1033,56 @@ class MusicPlayer {
 // Initialize the music player when the page loads
 let musicPlayer;
 document.addEventListener('DOMContentLoaded', () => {
-    musicPlayer = new MusicPlayer();
+    // Show loading screen for exactly 3 seconds
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const loadingText = document.getElementById('loadingText');
     
-    // Make debug method available globally for testing
-    window.debugTopPlayed = () => musicPlayer.debugTopPlayed();
+    // Loading messages that change every second
+    const loadingMessages = [
+        'Initializing player...',
+        'Loading music library...',
+        'Almost ready...'
+    ];
+    
+    // Update loading message every second
+    loadingMessages.forEach((message, index) => {
+        setTimeout(() => {
+            loadingText.textContent = message;
+        }, index * 1000); // Change every 1000ms (1 second)
+    });
+    
+    // Start the loading animation
+    setTimeout(() => {
+        // Hide loading screen with fade out effect
+        loadingScreen.style.transition = 'opacity 0.5s ease-out';
+        loadingScreen.style.opacity = '0';
+        
+        // Show main content
+        mainContent.style.display = 'block';
+        mainContent.style.opacity = '0';
+        mainContent.style.transition = 'opacity 0.5s ease-in';
+        
+        // Fade in main content
+        setTimeout(() => {
+            mainContent.style.opacity = '1';
+        }, 50);
+        
+        // Remove loading screen from DOM after fade out
+        setTimeout(() => {
+            if (loadingScreen.parentNode) {
+                loadingScreen.parentNode.removeChild(loadingScreen);
+            }
+        }, 500);
+        
+        // Initialize music player after loading screen
+        musicPlayer = new MusicPlayer();
+        
+        // Make debug method available globally for testing
+        window.debugTopPlayed = () => musicPlayer.debugTopPlayed();
+        window.forceRefreshCards = () => musicPlayer.forceRefreshAllCards();
+        
+    }, 3000); // Exactly 3 seconds
 });
 
 // Hide search results when clicking outside
