@@ -971,3 +971,67 @@ body {
 }
 
 /* Scrollbar styling removed - no more search results dropdown */
+
+/* Desktop and laptop devices - completely hide mute button */
+@media (min-width: 1201px) and (hover: hover) and (pointer: fine) {
+    .mobile-only {
+        display: none !important;
+    }
+    
+    .mute-btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+    }
+    
+    .desktop-only {
+        display: flex !important;
+    }
+    
+    .volume-control {
+        min-width: 150px;
+        justify-content: flex-start;
+    }
+}
+
+/* Force desktop devices to show volume slider and hide mute button */
+@media (min-width: 1201px) {
+    .desktop-only {
+        display: flex !important;
+    }
+    
+    .mobile-only {
+        display: none !important;
+    }
+    
+    .mute-btn {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: none !important;
+        position: absolute !important;
+        left: -9999px !important;
+        top: -9999px !important;
+    }
+    
+    .volume-control {
+        min-width: 150px;
+        justify-content: flex-start;
+    }
+}

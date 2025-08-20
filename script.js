@@ -198,56 +198,65 @@ class MusicPlayer {
         // Mute button control (mobile)
         const muteBtn = document.getElementById('muteBtn');
         if (muteBtn) {
-            console.log('🔇 Mute button found, adding event listeners');
+            // Check if this is a desktop device
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isDesktop = window.innerWidth > 1200 && !isTouchDevice;
             
-            // Add multiple event listeners for better mobile compatibility
-            muteBtn.addEventListener('click', (e) => {
-                console.log('🔇 Mute button clicked!');
-                e.preventDefault();
-                e.stopPropagation();
-                this.toggleMute();
-            });
-            
-            // Add touch events for better mobile support
-            muteBtn.addEventListener('touchstart', (e) => {
-                console.log('🔇 Mute button touchstart!');
-                e.preventDefault();
-                e.stopPropagation();
-                // Add visual feedback
-                muteBtn.style.transform = 'scale(0.95)';
-            });
-            
-            muteBtn.addEventListener('touchend', (e) => {
-                console.log('🔇 Mute button touchend!');
-                e.preventDefault();
-                e.stopPropagation();
-                // Remove visual feedback and trigger mute
-                muteBtn.style.transform = 'scale(1)';
-                this.toggleMute();
-            });
-            
-            // Add mousedown/mouseup for desktop compatibility
-            muteBtn.addEventListener('mousedown', (e) => {
-                console.log('🔇 Mute button mousedown!');
-                muteBtn.style.transform = 'scale(0.95)';
-            });
-            
-            muteBtn.addEventListener('mouseup', (e) => {
-                console.log('🔇 Mute button mouseup!');
-                muteBtn.style.transform = 'scale(1)';
-            });
-            
-            // Ensure the button is properly styled and visible
-            muteBtn.style.display = 'flex';
-            muteBtn.style.visibility = 'visible';
-            muteBtn.style.opacity = '1';
-            muteBtn.style.pointerEvents = 'auto';
-            
-            console.log('🔇 Mute button event listeners added successfully');
-            console.log('🔇 Mute button display style:', window.getComputedStyle(muteBtn).display);
-            console.log('🔇 Mute button visibility:', window.getComputedStyle(muteBtn).visibility);
-            console.log('🔇 Mute button opacity:', window.getComputedStyle(muteBtn).opacity);
-            
+            if (isDesktop) {
+                console.log('💻 Desktop device detected - skipping mute button setup');
+                // Hide mute button on desktop
+                this.hideMuteButtonOnDesktop();
+            } else {
+                console.log('🔇 Mute button found, adding event listeners for mobile device');
+                
+                // Add multiple event listeners for better mobile compatibility
+                muteBtn.addEventListener('click', (e) => {
+                    console.log('🔇 Mute button clicked!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.toggleMute();
+                });
+                
+                // Add touch events for better mobile support
+                muteBtn.addEventListener('touchstart', (e) => {
+                    console.log('🔇 Mute button touchstart!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Add visual feedback
+                    muteBtn.style.transform = 'scale(0.95)';
+                });
+                
+                muteBtn.addEventListener('touchend', (e) => {
+                    console.log('🔇 Mute button touchend!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Remove visual feedback and trigger mute
+                    muteBtn.style.transform = 'scale(1)';
+                    this.toggleMute();
+                });
+                
+                // Add mousedown/mouseup for desktop compatibility
+                muteBtn.addEventListener('mousedown', (e) => {
+                    console.log('🔇 Mute button mousedown!');
+                    muteBtn.style.transform = 'scale(0.95)';
+                });
+                
+                muteBtn.addEventListener('mouseup', (e) => {
+                    console.log('🔇 Mute button mouseup!');
+                    muteBtn.style.transform = 'scale(1)';
+                });
+                
+                // Ensure the button is properly styled and visible
+                muteBtn.style.display = 'flex';
+                muteBtn.style.visibility = 'visible';
+                muteBtn.style.opacity = '1';
+                muteBtn.style.pointerEvents = 'auto';
+                
+                console.log('🔇 Mute button event listeners added successfully');
+                console.log('🔇 Mute button display style:', window.getComputedStyle(muteBtn).display);
+                console.log('🔇 Mute button visibility:', window.getComputedStyle(muteBtn).visibility);
+                console.log('🔇 Mute button opacity:', window.getComputedStyle(muteBtn).opacity);
+            }
         } else {
             console.log('⚠️ Mute button not found in DOM');
         }
@@ -1113,10 +1122,16 @@ class MusicPlayer {
         const height = window.innerHeight;
         const userAgent = navigator.userAgent;
         
+        // Detect if device supports touch
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const isDesktop = width > 1200 && !isTouchDevice;
+        
         console.log('📱 Device check:');
         console.log('   Screen dimensions:', width + 'x' + height);
         console.log('   User agent:', userAgent);
-        console.log('   Is mobile/tablet:', width <= 1200);
+        console.log('   Is touch device:', isTouchDevice);
+        console.log('   Is desktop/laptop:', isDesktop);
+        console.log('   Is mobile/tablet:', width <= 1200 || isTouchDevice);
         
         // Check if mute button and volume slider exist
         const muteBtn = document.getElementById('muteBtn');
@@ -1137,15 +1152,34 @@ class MusicPlayer {
             console.log('   Volume slider display:', window.getComputedStyle(volumeSlider.parentElement).display);
         }
         
-        // Force mute button visibility on mobile devices
-        if (width <= 1200 && muteBtn) {
+        // Force mute button visibility on mobile devices only
+        if ((width <= 1200 || isTouchDevice) && muteBtn && !isDesktop) {
             this.forceMuteButtonVisibility();
+        }
+        
+        // Hide mute button completely on desktop devices
+        if (isDesktop && muteBtn) {
+            this.hideMuteButtonOnDesktop();
+        }
+        
+        // Ensure volume slider is visible on desktop
+        if (isDesktop && volumeSlider) {
+            this.showVolumeSliderOnDesktop();
         }
     }
 
     forceMuteButtonVisibility() {
         const muteBtn = document.getElementById('muteBtn');
         if (muteBtn) {
+            // Check if this is a desktop device
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isDesktop = window.innerWidth > 1200 && !isTouchDevice;
+            
+            if (isDesktop) {
+                console.log('💻 Desktop device detected - not forcing mute button visibility');
+                return;
+            }
+            
             console.log('🔧 Forcing mute button visibility for mobile device');
             
             // Force the button to be visible
@@ -1177,6 +1211,61 @@ class MusicPlayer {
                 opacity: muteBtn.style.opacity,
                 pointerEvents: muteBtn.style.pointerEvents
             });
+        }
+    }
+
+    hideMuteButtonOnDesktop() {
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            console.log('💻 Hiding mute button on desktop device');
+            
+            // Completely hide the mute button
+            muteBtn.style.display = 'none';
+            muteBtn.style.visibility = 'hidden';
+            muteBtn.style.opacity = '0';
+            muteBtn.style.pointerEvents = 'none';
+            muteBtn.style.width = '0';
+            muteBtn.style.height = '0';
+            muteBtn.style.margin = '0';
+            muteBtn.style.padding = '0';
+            muteBtn.style.border = 'none';
+            muteBtn.style.background = 'none';
+            muteBtn.style.position = 'absolute';
+            muteBtn.style.left = '-9999px';
+            muteBtn.style.top = '-9999px';
+            muteBtn.style.zIndex = '-1';
+            
+            // Remove any event listeners
+            muteBtn.replaceWith(muteBtn.cloneNode(true));
+            
+            console.log('💻 Mute button completely hidden on desktop');
+        }
+    }
+
+    showVolumeSliderOnDesktop() {
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeContainer = volumeSlider ? volumeSlider.parentElement : null;
+        
+        if (volumeSlider && volumeContainer) {
+            console.log('💻 Showing volume slider on desktop device');
+            
+            // Ensure volume slider is visible
+            volumeContainer.style.display = 'flex';
+            volumeContainer.style.visibility = 'visible';
+            volumeContainer.style.opacity = '1';
+            volumeContainer.style.pointerEvents = 'auto';
+            volumeContainer.style.width = 'auto';
+            volumeContainer.style.minWidth = '150px';
+            
+            // Style the volume slider for desktop
+            volumeSlider.style.display = 'block';
+            volumeSlider.style.visibility = 'visible';
+            volumeSlider.style.opacity = '1';
+            volumeSlider.style.pointerEvents = 'auto';
+            volumeSlider.style.width = '100px';
+            volumeSlider.style.height = '4px';
+            
+            console.log('💻 Volume slider shown on desktop');
         }
     }
 
@@ -1387,8 +1476,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // Make debug method available globally for testing
         window.debugTopPlayed = () => musicPlayer.debugTopPlayed();
         window.forceRefreshCards = () => musicPlayer.forceRefreshAllCards();
-        window.testMute = () => musicPlayer.testMute();
-        window.forceMuteButton = () => musicPlayer.forceMuteButtonVisibility();
+        window.testMute = () => {
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isDesktop = window.innerWidth > 1200 && !isTouchDevice;
+            
+            if (isDesktop) {
+                console.log('💻 Desktop device detected - mute functionality not available');
+                console.log('💻 Use volume slider for volume control on desktop');
+                return;
+            }
+            musicPlayer.testMute();
+        };
+        window.forceMuteButton = () => {
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isDesktop = window.innerWidth > 1200 && !isTouchDevice;
+            
+            if (isDesktop) {
+                console.log('💻 Desktop device detected - mute button not available');
+                console.log('💻 Use volume slider for volume control on desktop');
+                return;
+            }
+            musicPlayer.forceMuteButtonVisibility();
+        };
         
     }, 3000); // Exactly 3 seconds
 });
