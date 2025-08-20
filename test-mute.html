@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mute Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .mute-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mute-btn.muted {
+            background: #dc3545;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: #e9ecef;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        audio {
+            width: 100%;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔇 Mute Functionality Test</h1>
+        
+        <div class="status">
+            <h3>Current Status:</h3>
+            <p><strong>Muted:</strong> <span id="muteStatus">No</span></p>
+            <p><strong>Volume:</strong> <span id="volumeStatus">0.5</span></p>
+            <p><strong>Audio Muted Property:</strong> <span id="audioMutedStatus">No</span></p>
+        </div>
+        
+        <div class="controls">
+            <button onclick="testMute()">Test Mute/Unmute</button>
+            <button onclick="setVolume(0.1)">Set Volume 10%</button>
+            <button onclick="setVolume(0.5)">Set Volume 50%</button>
+            <button onclick="setVolume(1.0)">Set Volume 100%</button>
+            <button onclick="checkAudioState()">Check Audio State</button>
+        </div>
+        
+        <div style="text-align: center;">
+            <button id="muteBtn" class="mute-btn" onclick="toggleMute()">
+                <i class="fas fa-volume-up"></i>
+            </button>
+        </div>
+        
+        <audio id="audioPlayer" controls>
+            <source src="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+        
+        <div class="status">
+            <h3>Debug Info:</h3>
+            <p><strong>Device Width:</strong> <span id="deviceWidth"></span></p>
+            <p><strong>Device Height:</strong> <span id="deviceHeight"></span></p>
+            <p><strong>User Agent:</strong> <span id="userAgent"></span></p>
+            <p><strong>Touch Device:</strong> <span id="touchDevice"></span></p>
+        </div>
+    </div>
+
+    <script>
+        let isMuted = false;
+        let lastVolume = 0.5;
+        const audioPlayer = document.getElementById('audioPlayer');
+        const muteBtn = document.getElementById('muteBtn');
+        
+        // Initialize
+        audioPlayer.volume = 0.5;
+        updateStatus();
+        updateDeviceInfo();
+        
+        function toggleMute() {
+            console.log('🔇 Toggle mute called, current state:', isMuted);
+            
+            try {
+                if (isMuted) {
+                    // Unmute
+                    console.log('🔊 Unmuting, restoring volume to:', lastVolume);
+                    audioPlayer.volume = lastVolume;
+                    audioPlayer.muted = false;
+                    isMuted = false;
+                    
+                    muteBtn.classList.remove('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                } else {
+                    // Mute
+                    console.log('🔇 Muting, saving current volume:', audioPlayer.volume);
+                    lastVolume = audioPlayer.volume;
+                    audioPlayer.volume = 0;
+                    audioPlayer.muted = true;
+                    isMuted = true;
+                    
+                    muteBtn.classList.add('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                }
+                
+                updateStatus();
+                console.log('🔇 Final mute state:', isMuted);
+                console.log('🔇 Final audio volume:', audioPlayer.volume);
+                console.log('🔇 Final audio muted property:', audioPlayer.muted);
+                
+            } catch (error) {
+                console.error('❌ Error in toggleMute:', error);
+            }
+        }
+        
+        function testMute() {
+            console.log('🧪 Testing mute functionality...');
+            toggleMute();
+            setTimeout(() => {
+                console.log('🧪 Test completed');
+            }, 100);
+        }
+        
+        function setVolume(volume) {
+            audioPlayer.volume = volume;
+            lastVolume = volume;
+            updateStatus();
+            console.log('🔊 Volume set to:', volume);
+        }
+        
+        function checkAudioState() {
+            console.log('🔍 Audio State Check:');
+            console.log('  Volume:', audioPlayer.volume);
+            console.log('  Muted:', audioPlayer.muted);
+            console.log('  Paused:', audioPlayer.paused);
+            console.log('  Current Time:', audioPlayer.currentTime);
+            console.log('  Duration:', audioPlayer.duration);
+            updateStatus();
+        }
+        
+        function updateStatus() {
+            document.getElementById('muteStatus').textContent = isMuted ? 'Yes' : 'No';
+            document.getElementById('volumeStatus').textContent = audioPlayer.volume.toFixed(2);
+            document.getElementById('audioMutedStatus').textContent = audioPlayer.muted ? 'Yes' : 'No';
+        }
+        
+        function updateDeviceInfo() {
+            document.getElementById('deviceWidth').textContent = window.innerWidth + 'px';
+            document.getElementById('deviceHeight').textContent = window.innerHeight + 'px';
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+            document.getElementById('touchDevice').textContent = 'ontouchstart' in window ? 'Yes' : 'No';
+        }
+        
+        // Add touch events for mobile
+        muteBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            muteBtn.style.transform = 'scale(0.95)';
+        });
+        
+        muteBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            muteBtn.style.transform = 'scale(1)';
+            toggleMute();
+        });
+        
+        // Update device info on resize
+        window.addEventListener('resize', updateDeviceInfo);
+        
+        // Log audio events
+        audioPlayer.addEventListener('volumechange', () => {
+            console.log('🔊 Volume changed to:', audioPlayer.volume);
+            updateStatus();
+        });
+        
+        audioPlayer.addEventListener('play', () => {
+            console.log('▶️ Audio started playing');
+        });
+        
+        audioPlayer.addEventListener('pause', () => {
+            console.log('⏸️ Audio paused');
+        });
+    </script>
+</body>
+</html>

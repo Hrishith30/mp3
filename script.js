@@ -29,8 +29,56 @@ class MusicPlayer {
         this.isMuted = false;
         this.lastVolume = 0.5;
         
+        // Handle mobile audio context issues
+        this.initializeMobileAudio();
+        
         // Resume playback from where it was stopped
         this.resumePlayback();
+    }
+
+    initializeMobileAudio() {
+        console.log('🔧 Initializing mobile audio compatibility...');
+        
+        // Handle audio context suspension on mobile devices
+        if (this.audioPlayer.context && this.audioPlayer.context.state === 'suspended') {
+            console.log('🔧 Audio context is suspended, attempting to resume...');
+            this.audioPlayer.context.resume();
+        }
+        
+        // Add event listeners for mobile audio context management
+        this.audioPlayer.addEventListener('play', () => {
+            console.log('🔧 Audio play event - checking context state...');
+            if (this.audioPlayer.context && this.audioPlayer.context.state === 'suspended') {
+                console.log('🔧 Resuming suspended audio context...');
+                this.audioPlayer.context.resume();
+            }
+        });
+        
+        // Handle volume changes for mobile devices
+        this.audioPlayer.addEventListener('volumechange', () => {
+            console.log('🔧 Volume changed to:', this.audioPlayer.volume);
+            if (this.audioPlayer.volume === 0 && !this.isMuted) {
+                console.log('🔧 Volume is 0 but not muted - this might indicate a mobile issue');
+            }
+        });
+        
+        // Add touch event handling for mobile devices
+        document.addEventListener('touchstart', () => {
+            console.log('🔧 Touch event detected - ensuring audio context is active...');
+            if (this.audioPlayer.context && this.audioPlayer.context.state === 'suspended') {
+                this.audioPlayer.context.resume();
+            }
+        }, { once: true });
+        
+        // Handle page visibility changes (common on mobile)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.audioPlayer.context && this.audioPlayer.context.state === 'suspended') {
+                console.log('🔧 Page became visible - resuming audio context...');
+                this.audioPlayer.context.resume();
+            }
+        });
+        
+        console.log('🔧 Mobile audio compatibility initialized');
     }
 
     async loadSongs() {
@@ -150,13 +198,56 @@ class MusicPlayer {
         // Mute button control (mobile)
         const muteBtn = document.getElementById('muteBtn');
         if (muteBtn) {
-            console.log('🔇 Mute button found, adding event listener');
+            console.log('🔇 Mute button found, adding event listeners');
+            
+            // Add multiple event listeners for better mobile compatibility
             muteBtn.addEventListener('click', (e) => {
                 console.log('🔇 Mute button clicked!');
                 e.preventDefault();
                 e.stopPropagation();
                 this.toggleMute();
             });
+            
+            // Add touch events for better mobile support
+            muteBtn.addEventListener('touchstart', (e) => {
+                console.log('🔇 Mute button touchstart!');
+                e.preventDefault();
+                e.stopPropagation();
+                // Add visual feedback
+                muteBtn.style.transform = 'scale(0.95)';
+            });
+            
+            muteBtn.addEventListener('touchend', (e) => {
+                console.log('🔇 Mute button touchend!');
+                e.preventDefault();
+                e.stopPropagation();
+                // Remove visual feedback and trigger mute
+                muteBtn.style.transform = 'scale(1)';
+                this.toggleMute();
+            });
+            
+            // Add mousedown/mouseup for desktop compatibility
+            muteBtn.addEventListener('mousedown', (e) => {
+                console.log('🔇 Mute button mousedown!');
+                muteBtn.style.transform = 'scale(0.95)';
+            });
+            
+            muteBtn.addEventListener('mouseup', (e) => {
+                console.log('🔇 Mute button mouseup!');
+                muteBtn.style.transform = 'scale(1)';
+            });
+            
+            // Ensure the button is properly styled and visible
+            muteBtn.style.display = 'flex';
+            muteBtn.style.visibility = 'visible';
+            muteBtn.style.opacity = '1';
+            muteBtn.style.pointerEvents = 'auto';
+            
+            console.log('🔇 Mute button event listeners added successfully');
+            console.log('🔇 Mute button display style:', window.getComputedStyle(muteBtn).display);
+            console.log('🔇 Mute button visibility:', window.getComputedStyle(muteBtn).visibility);
+            console.log('🔇 Mute button opacity:', window.getComputedStyle(muteBtn).opacity);
+            
         } else {
             console.log('⚠️ Mute button not found in DOM');
         }
@@ -912,53 +1003,109 @@ class MusicPlayer {
 
     toggleMute() {
         console.log('🔇 toggleMute called, current state:', this.isMuted);
+        console.log('🔇 Current audio volume:', this.audioPlayer.volume);
+        console.log('🔇 Audio muted property:', this.audioPlayer.muted);
         
-        if (this.isMuted) {
-            // Unmute: restore previous volume
-            console.log('🔊 Unmuting, restoring volume to:', this.lastVolume);
-            this.audioPlayer.volume = this.lastVolume;
-            this.isMuted = false;
-            
-            // Update mute button
-            const muteBtn = document.getElementById('muteBtn');
-            if (muteBtn) {
-                muteBtn.classList.remove('muted');
-                muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                console.log('🔊 Mute button updated to unmuted state');
+        try {
+            if (this.isMuted) {
+                // Unmute: restore previous volume
+                console.log('🔊 Unmuting, restoring volume to:', this.lastVolume);
+                
+                // Set both volume and muted properties for better compatibility
+                this.audioPlayer.volume = this.lastVolume;
+                this.audioPlayer.muted = false;
+                this.isMuted = false;
+                
+                // Update mute button
+                const muteBtn = document.getElementById('muteBtn');
+                if (muteBtn) {
+                    muteBtn.classList.remove('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    muteBtn.title = 'Mute';
+                    console.log('🔊 Mute button updated to unmuted state');
+                } else {
+                    console.log('⚠️ Mute button not found when trying to update');
+                }
+                
+                // Update volume slider if it exists (desktop)
+                const volumeSlider = document.getElementById('volumeSlider');
+                if (volumeSlider) {
+                    volumeSlider.value = this.lastVolume * 100;
+                }
+                
+                // Force audio context resume on mobile devices
+                if (this.audioPlayer.context && this.audioPlayer.context.state === 'suspended') {
+                    this.audioPlayer.context.resume();
+                }
+                
             } else {
-                console.log('⚠️ Mute button not found when trying to update');
+                // Mute: save current volume and set to 0
+                console.log('🔇 Muting, saving current volume:', this.audioPlayer.volume);
+                this.lastVolume = this.audioPlayer.volume;
+                
+                // Set both volume and muted properties for better compatibility
+                this.audioPlayer.volume = 0;
+                this.audioPlayer.muted = true;
+                this.isMuted = true;
+                
+                // Update mute button
+                const muteBtn = document.getElementById('muteBtn');
+                if (muteBtn) {
+                    muteBtn.classList.add('muted');
+                    muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    muteBtn.title = 'Unmute';
+                    console.log('🔇 Mute button updated to muted state');
+                } else {
+                    console.log('⚠️ Mute button not found when trying to update');
+                }
+                
+                // Update volume slider if it exists (desktop)
+                const volumeSlider = document.getElementById('volumeSlider');
+                if (volumeSlider) {
+                    volumeSlider.value = 0;
+                }
             }
             
-            // Update volume slider if it exists (desktop)
-            const volumeSlider = document.getElementById('volumeSlider');
-            if (volumeSlider) {
-                volumeSlider.value = this.lastVolume * 100;
-            }
-        } else {
-            // Mute: save current volume and set to 0
-            console.log('🔇 Muting, saving current volume:', this.audioPlayer.volume);
-            this.lastVolume = this.audioPlayer.volume;
-            this.audioPlayer.volume = 0;
-            this.isMuted = true;
+            // Verify the mute state
+            console.log('🔇 Final mute state:', this.isMuted);
+            console.log('🔇 Final audio volume:', this.audioPlayer.volume);
+            console.log('🔇 Final audio muted property:', this.audioPlayer.muted);
             
-            // Update mute button
-            const muteBtn = document.getElementById('muteBtn');
-            if (muteBtn) {
-                muteBtn.classList.add('muted');
-                muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
-                console.log('🔇 Mute button updated to muted state');
-            } else {
-                console.log('⚠️ Mute button not found when trying to update');
-            }
+            // Force a small delay to ensure the change takes effect
+            setTimeout(() => {
+                console.log('🔇 Delayed verification - Volume:', this.audioPlayer.volume, 'Muted:', this.audioPlayer.muted);
+            }, 100);
             
-            // Update volume slider if it exists (desktop)
-            const volumeSlider = document.getElementById('volumeSlider');
-            if (volumeSlider) {
-                volumeSlider.value = 0;
+        } catch (error) {
+            console.error('❌ Error in toggleMute:', error);
+            
+            // Fallback: try to mute/unmute using just the muted property
+            try {
+                if (this.isMuted) {
+                    this.audioPlayer.muted = false;
+                    this.isMuted = false;
+                    console.log('🔊 Fallback unmute successful');
+                } else {
+                    this.audioPlayer.muted = true;
+                    this.isMuted = true;
+                    console.log('🔇 Fallback mute successful');
+                }
+                
+                // Update UI
+                const muteBtn = document.getElementById('muteBtn');
+                if (muteBtn) {
+                    if (this.isMuted) {
+                        muteBtn.classList.add('muted');
+                        muteBtn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+                    } else {
+                        muteBtn.classList.remove('muted');
+                        muteBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    }
+                }
+            } catch (fallbackError) {
+                console.error('❌ Fallback mute/unmute also failed:', fallbackError);
             }
         }
-        
-        console.log('🔇 Final mute state:', this.isMuted, 'Volume:', this.audioPlayer.volume);
     }
 
     checkDeviceType() {
@@ -981,10 +1128,55 @@ class MusicPlayer {
         if (muteBtn) {
             console.log('   Mute button classes:', muteBtn.className);
             console.log('   Mute button display:', window.getComputedStyle(muteBtn).display);
+            console.log('   Mute button visibility:', window.getComputedStyle(muteBtn).visibility);
+            console.log('   Mute button opacity:', window.getComputedStyle(muteBtn).opacity);
+            console.log('   Mute button pointer-events:', window.getComputedStyle(muteBtn).pointerEvents);
         }
         
         if (volumeSlider) {
             console.log('   Volume slider display:', window.getComputedStyle(volumeSlider.parentElement).display);
+        }
+        
+        // Force mute button visibility on mobile devices
+        if (width <= 1200 && muteBtn) {
+            this.forceMuteButtonVisibility();
+        }
+    }
+
+    forceMuteButtonVisibility() {
+        const muteBtn = document.getElementById('muteBtn');
+        if (muteBtn) {
+            console.log('🔧 Forcing mute button visibility for mobile device');
+            
+            // Force the button to be visible
+            muteBtn.style.display = 'flex !important';
+            muteBtn.style.visibility = 'visible !important';
+            muteBtn.style.opacity = '1 !important';
+            muteBtn.style.pointerEvents = 'auto !important';
+            muteBtn.style.zIndex = '1000';
+            
+            // Remove any conflicting classes
+            muteBtn.classList.remove('d-none', 'invisible', 'opacity-0');
+            
+            // Add mobile-specific styling
+            muteBtn.style.width = '40px';
+            muteBtn.style.height = '40px';
+            muteBtn.style.fontSize = '1.1rem';
+            muteBtn.style.background = 'rgba(0, 123, 255, 0.2)';
+            muteBtn.style.border = '2px solid rgba(0, 123, 255, 0.5)';
+            muteBtn.style.color = '#007bff';
+            muteBtn.style.borderRadius = '50%';
+            muteBtn.style.alignItems = 'center';
+            muteBtn.style.justifyContent = 'center';
+            muteBtn.style.cursor = 'pointer';
+            
+            console.log('🔧 Mute button forced visibility applied');
+            console.log('🔧 Final mute button styles:', {
+                display: muteBtn.style.display,
+                visibility: muteBtn.style.visibility,
+                opacity: muteBtn.style.opacity,
+                pointerEvents: muteBtn.style.pointerEvents
+            });
         }
     }
 
@@ -1133,6 +1325,14 @@ class MusicPlayer {
         console.log('🔍 === END DEBUG ===');
     }
 
+    testMute() {
+        console.log('🔇 Testing toggleMute...');
+        this.toggleMute();
+        console.log('🔇 Final mute state:', this.isMuted);
+        console.log('🔇 Final audio volume:', this.audioPlayer.volume);
+        console.log('🔇 Final audio muted property:', this.audioPlayer.muted);
+    }
+
 
 }
 
@@ -1187,6 +1387,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Make debug method available globally for testing
         window.debugTopPlayed = () => musicPlayer.debugTopPlayed();
         window.forceRefreshCards = () => musicPlayer.forceRefreshAllCards();
+        window.testMute = () => musicPlayer.testMute();
+        window.forceMuteButton = () => musicPlayer.forceMuteButtonVisibility();
         
     }, 3000); // Exactly 3 seconds
 });
