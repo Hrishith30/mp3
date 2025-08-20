@@ -71,11 +71,13 @@ class MusicPlayer {
                                     }
                                 });
                                 
-                                // Clean up repo names too
-                                let cleanRepo = repo.split('/')[5];
-                                if (cleanRepo && cleanRepo.length > 20) {
-                                    cleanRepo = cleanRepo.substring(0, 20);
-                                }
+                                        // Clean up repo names too
+        let cleanRepo = repo.split('/')[5];
+        if (cleanRepo && cleanRepo.length > 20) {
+            cleanRepo = cleanRepo.substring(0, 20);
+        }
+        
+        console.log(`🔧 Processing repo: ${repo} → cleanRepo: ${cleanRepo}`);
                                 
                                 return {
                                     name: cleanName,
@@ -94,6 +96,8 @@ class MusicPlayer {
 
             // Sort songs alphabetically by name
             this.playlist = allSongs.sort((a, b) => a.name.localeCompare(b.name));
+            console.log(`🎵 Loaded ${this.playlist.length} songs from GitHub repositories`);
+            console.log(`🎵 First few songs:`, this.playlist.slice(0, 3));
             this.renderAllSongs();
             this.renderTopPlayed();
             
@@ -377,7 +381,15 @@ class MusicPlayer {
             repo: repo
         };
 
+        console.log(`🎵 playSong called with:`, { url, name, repo });
+        console.log(`🎵 Created song object:`, song);
+        console.log(`🎵 Current playlist length:`, this.playlist.length);
+
         this.currentSong = song;
+        
+        // Increment play count immediately when song is selected
+        this.incrementPlayCount(song);
+        this.saveUserData();
         
         // Reset audio player to ensure clean state
         this.audioPlayer.pause();
@@ -390,8 +402,6 @@ class MusicPlayer {
                 this.isPlaying = true;
                 this.updatePlayPauseButton();
                 this.updateCurrentSongDisplay();
-                this.incrementPlayCount(song);
-                this.saveUserData();
                 this.updateSongCardsState();
             }).catch(error => {
                 console.error('Error playing audio:', error);
@@ -571,7 +581,13 @@ class MusicPlayer {
 
     incrementPlayCount(song) {
         const key = `${song.name}-${song.repo}`;
-        this.topPlayed[key] = (this.topPlayed[key] || 0) + 1;
+        const previousCount = this.topPlayed[key] || 0;
+        this.topPlayed[key] = previousCount + 1;
+        
+        console.log(`🎵 Play count incremented for: ${song.name} (${song.repo})`);
+        console.log(`📊 Previous count: ${previousCount} → New count: ${this.topPlayed[key]}`);
+        console.log(`🔑 Key used: ${key}`);
+        
         this.renderTopPlayed();
     }
 
@@ -579,8 +595,10 @@ class MusicPlayer {
 
     renderTopPlayed() {
         const container = document.getElementById('topPlayed');
-        console.log('Top played data:', this.topPlayed);
-        console.log('Playlist length:', this.playlist.length);
+        console.log('🎵 renderTopPlayed called');
+        console.log('📊 Top played data:', this.topPlayed);
+        console.log('📁 Playlist length:', this.playlist.length);
+        console.log('📁 First 5 playlist items:', this.playlist.slice(0, 5));
         
         const sortedSongs = Object.entries(this.topPlayed)
             .sort(([,a], [,b]) => b - a)
@@ -590,22 +608,59 @@ class MusicPlayer {
         
         const mappedSongs = sortedSongs.map(([key, count]) => {
             const [name, repo] = key.split('-');
+            console.log(`🔍 Processing key: ${key} with name: ${name}, repo: ${repo}`);
+            
             // Find the original song data to get the URL
             let originalSong = this.playlist.find(song => song.name === name && song.repo === repo);
             
             // If exact match not found, try to find by name only (more flexible matching)
             if (!originalSong) {
+                console.log(`❌ Exact match not found for ${name} from ${repo}`);
                 originalSong = this.playlist.find(song => song.name === name);
-                console.log(`Exact match not found for ${name} from ${repo}, trying name-only match:`, originalSong ? 'YES' : 'NO');
+                console.log(`🔄 Trying name-only match for ${name}:`, originalSong ? 'YES' : 'NO');
+                
+                if (originalSong) {
+                    console.log(`✅ Found by name only:`, originalSong);
+                }
+            } else {
+                console.log(`✅ Exact match found:`, originalSong);
             }
             
-            console.log(`Looking for song: ${name} from ${repo}, found:`, originalSong ? 'YES' : 'NO');
-            return { 
+            // If still no match, try fuzzy matching by name similarity
+            if (!originalSong) {
+                console.log(`🔍 Trying fuzzy match for: ${name}`);
+                originalSong = this.playlist.find(song => 
+                    song.name.toLowerCase().includes(name.toLowerCase()) || 
+                    name.toLowerCase().includes(song.name.toLowerCase())
+                );
+                console.log(`🔍 Fuzzy match result:`, originalSong);
+            }
+            
+            // If still no match, try matching by URL similarity (last resort)
+            if (!originalSong) {
+                console.log(`🔍 Trying URL-based matching for: ${name}`);
+                // Look for songs with similar names and any repo
+                const similarSongs = this.playlist.filter(song => 
+                    song.name.toLowerCase().includes(name.toLowerCase()) || 
+                    name.toLowerCase().includes(song.name.toLowerCase())
+                );
+                
+                if (similarSongs.length > 0) {
+                    // Use the first similar song found
+                    originalSong = similarSongs[0];
+                    console.log(`🔍 URL-based match found:`, originalSong);
+                }
+            }
+            
+            const result = { 
                 name, 
                 repo, 
                 count, 
                 url: originalSong ? originalSong.url : null 
             };
+            
+            console.log(`📋 Final result for ${key}:`, result);
+            return result;
         });
         
         console.log('Mapped songs:', mappedSongs);
@@ -769,11 +824,10 @@ class MusicPlayer {
             <div class="col-6 col-md-4 col-lg-3 col-xl-2 mb-3">
                 <div class="${cardClass}" 
                      onclick="musicPlayer.playSong('${song.url}', '${song.name}', '${song.repo}')"
-                     ondblclick="if(musicPlayer.currentSong && this.currentSong.url === '${song.url}') musicPlayer.restartCurrentSong()"
-                     title="${song.name} - ${song.repo}${isCurrentSong ? ' (Double-click to restart)' : ''}">
+                     ondblclick="if(musicPlayer.currentSong && musicPlayer.currentSong.url === '${song.url}') musicPlayer.restartCurrentSong()"
+                     title="${song.name}${isCurrentSong ? ' (Double-click to restart)' : ''}">
                     <div class="card-body">
                         <h6 class="card-title">${truncatedName}</h6>
-                        <p class="card-text">${truncatedRepo}</p>
                         ${playCount ? `<div class="play-count">${playCount} plays</div>` : ''}
                     </div>
                     <button class="play-button">
@@ -805,8 +859,14 @@ class MusicPlayer {
         const savedShuffle = localStorage.getItem(`musicPlayer_shuffle_${deviceId}`);
         const savedRepeat = localStorage.getItem(`musicPlayer_repeat_${deviceId}`);
         
+        console.log(`🔍 Loading user data for device: ${deviceId}`);
+        console.log(`📊 Saved top played data:`, savedTopPlayed);
+        
         if (savedTopPlayed) {
             this.topPlayed = JSON.parse(savedTopPlayed);
+            console.log(`✅ Top played data loaded:`, this.topPlayed);
+        } else {
+            console.log(`⚠️ No saved top played data found`);
         }
 
         if (savedShuffle) {
@@ -838,6 +898,11 @@ class MusicPlayer {
         localStorage.setItem(`musicPlayer_topPlayed_${deviceId}`, JSON.stringify(this.topPlayed));
         localStorage.setItem(`musicPlayer_shuffle_${deviceId}`, JSON.stringify(this.shuffleEnabled));
         localStorage.setItem(`musicPlayer_repeat_${deviceId}`, this.repeatMode);
+        
+        console.log(`💾 User data saved for device: ${deviceId}`);
+        console.log(`📊 Top played songs saved:`, this.topPlayed);
+        console.log(`🔀 Shuffle state saved:`, this.shuffleEnabled);
+        console.log(`🔁 Repeat mode saved:`, this.repeatMode);
     }
 
     getDeviceId() {
@@ -888,6 +953,50 @@ class MusicPlayer {
         }, 5000);
     }
 
+    // Debug method to manually test top played functionality
+    debugTopPlayed() {
+        console.log('🔍 === DEBUG TOP PLAYED ===');
+        console.log('📊 Current topPlayed object:', this.topPlayed);
+        console.log('📁 Current playlist:', this.playlist);
+        console.log('🔑 Top played keys:', Object.keys(this.topPlayed));
+        
+        // Test matching for each top played entry
+        Object.entries(this.topPlayed).forEach(([key, count]) => {
+            const [name, repo] = key.split('-');
+            console.log(`\n🔍 Testing key: ${key}`);
+            console.log(`   Name: ${name}`);
+            console.log(`   Repo: ${repo}`);
+            console.log(`   Count: ${count}`);
+            
+            // Try exact match
+            let match = this.playlist.find(song => song.name === name && song.repo === repo);
+            console.log(`   Exact match:`, match ? 'YES' : 'NO');
+            
+            // Try name only match
+            if (!match) {
+                match = this.playlist.find(song => song.name === name);
+                console.log(`   Name-only match:`, match ? 'YES' : 'NO');
+            }
+            
+            // Try fuzzy match
+            if (!match) {
+                match = this.playlist.find(song => 
+                    song.name.toLowerCase().includes(name.toLowerCase()) || 
+                    name.toLowerCase().includes(song.name.toLowerCase())
+                );
+                console.log(`   Fuzzy match:`, match ? 'YES' : 'NO');
+            }
+            
+            if (match) {
+                console.log(`   ✅ Matched song:`, match);
+            } else {
+                console.log(`   ❌ No match found`);
+            }
+        });
+        
+        console.log('🔍 === END DEBUG ===');
+    }
+
 
 }
 
@@ -895,6 +1004,9 @@ class MusicPlayer {
 let musicPlayer;
 document.addEventListener('DOMContentLoaded', () => {
     musicPlayer = new MusicPlayer();
+    
+    // Make debug method available globally for testing
+    window.debugTopPlayed = () => musicPlayer.debugTopPlayed();
 });
 
 // Hide search results when clicking outside

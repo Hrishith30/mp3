@@ -357,14 +357,14 @@ body {
     transition: all 0.3s ease;
     cursor: pointer;
     overflow: hidden;
-    height: 180px;
+    height: 200px;
     display: flex;
     flex-direction: column;
     border: 1px solid rgba(255, 255, 255, 0.08);
     position: relative;
     z-index: 1;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
     padding: 1.2rem;
 }
@@ -381,8 +381,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.5rem;
+    padding-top: 1rem;
 }
 
 .song-card .card-title {
@@ -405,9 +406,15 @@ body {
 }
 
 .song-card .play-count {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 0.75rem;
     color: #007bff;
     font-weight: 500;
+    text-align: center;
+    width: 100%;
 }
 
 .song-card .play-button {
@@ -548,6 +555,12 @@ body {
         height: 180px; /* Slightly smaller height on tablets */
     }
     
+    .song-card .play-button {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
     .content-area {
         margin: 10px;
         margin-bottom: 100px;
@@ -586,6 +599,12 @@ body {
     
     .song-card {
         height: 160px; /* Smaller height on mobile */
+    }
+    
+    .song-card .play-button {
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
     
     .content-area {
