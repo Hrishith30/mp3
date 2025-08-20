@@ -630,34 +630,28 @@ body {
     }
 }
 
-/* Desktop and laptop displays - show volume slider, hide mute button */
-@media (min-width: 1025px) {
-    .volume-control {
-        min-width: 150px;
-    }
-    
-    .desktop-only {
-        display: flex !important;
-    }
-    
-    .mobile-only {
-        display: none !important;
-    }
+/* Default: Show volume slider, hide mute button (desktop) */
+.desktop-only {
+    display: flex;
 }
 
-/* Mobile devices, iPads, and iPad Pros - hide volume slider, show only mute button */
-@media (max-width: 1024px), (max-device-width: 1024px), (max-width: 768px), (max-device-width: 768px) {
+.mobile-only {
+    display: none;
+}
+
+/* All tablets, mobile devices, iPads, and iPad Pros - hide volume slider, show only mute button */
+@media (max-width: 1200px), (max-device-width: 1200px), (max-width: 1024px), (max-device-width: 1024px), (max-width: 768px), (max-device-width: 768px), (max-width: 820px), (max-device-width: 820px), (max-width: 834px), (max-device-width: 834px), (max-width: 1024px) and (max-height: 768px), (max-width: 768px) and (max-height: 1024px) {
     .volume-control {
         min-width: 50px;
         justify-content: center;
     }
     
-    /* Hide desktop controls on mobile */
+    /* Hide desktop controls on mobile/tablet */
     .desktop-only {
         display: none !important;
     }
     
-    /* Show mobile controls on mobile */
+    /* Show mobile controls on mobile/tablet */
     .mobile-only {
         display: flex !important;
     }
