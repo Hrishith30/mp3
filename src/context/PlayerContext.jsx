@@ -252,6 +252,7 @@ export const PlayerProvider = ({ children }) => {
             userIntentPaused.current = false;
             setIsPlaying(true);
             updateMediaSessionState('playing');
+            setupMediaSessionHandlers(); // Sustain handlers
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionState('paused');
@@ -288,34 +289,40 @@ export const PlayerProvider = ({ children }) => {
     }, [isPlaying]);
 
     // --- Media Session API ---
-    useEffect(() => {
+    const setupMediaSessionHandlers = () => {
         if (!('mediaSession' in navigator)) return;
 
-        const handlers = [
-            ['play', () => { resumeAudioContext(); togglePlay(); }],
-            ['pause', () => { togglePlay(); }],
-            ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
-            ['nexttrack', () => { resumeAudioContext(); playNext(); }],
-            ['seekto', (details) => { seekTo(details.seekTime); }],
-            // HIJACK: Force seek buttons to act as Next/Prev (Solves iOS/Android sticky icons)
-            ['seekbackward', () => { playPrev(); }],
-            ['seekforward', () => { playNext(); }],
-            ['stop', () => { togglePlay(); }]
-        ];
+        try {
+            // Standard Controls
+            navigator.mediaSession.setActionHandler('play', () => { resumeAudioContext(); togglePlay(); });
+            navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => { resumeAudioContext(); playPrev(); });
+            navigator.mediaSession.setActionHandler('nexttrack', () => { resumeAudioContext(); playNext(); });
+            navigator.mediaSession.setActionHandler('stop', () => { togglePlay(); });
 
-        for (const [action, handler] of handlers) {
-            try {
-                navigator.mediaSession.setActionHandler(action, handler);
-            } catch (error) {
-                // Action not supported
-            }
+            // Scrubbing (Keep this if possible)
+            navigator.mediaSession.setActionHandler('seekto', (details) => { seekTo(details.seekTime); });
+
+            // FORCE REMOVE SEEK BUTTONS (iOS/Android 10s Skip)
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+        } catch (error) {
+            console.warn("MediaSession setup warning:", error);
         }
+    };
 
+    useEffect(() => {
+        setupMediaSessionHandlers();
         return () => {
             const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
             actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
         };
-    }, []); // Register ONCE to prevent UI flickering on iOS
+    }, []);
+
+    useEffect(() => {
+        // Re-apply handlers whenever track changes to ensure they stick
+        setupMediaSessionHandlers();
+    }, [currentTrack]);
 
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
