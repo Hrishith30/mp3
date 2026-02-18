@@ -257,7 +257,7 @@ export const PlayerProvider = ({ children }) => {
             setDuration(dur);
 
             updateMediaSessionState('playing', playerRef.current.getCurrentTime(), dur);
-            setupMediaSessionHandlers(); // Sustain handlers against OS resets
+            // setupMediaSessionHandlers(); // REMOVED: Using Static Proxy now
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionState('paused');
@@ -293,33 +293,58 @@ export const PlayerProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [isPlaying]);
 
-    const setupMediaSessionHandlers = () => {
+    // --- Media Session API (Static Proxy Pattern) ---
+    // Refs to hold latest function closures without re-binding handlers
+    const mediaSessionActions = useRef({
+        play: null,
+        pause: null,
+        prev: null,
+        next: null,
+        seek: null,
+        stop: null
+    });
+
+    // Update refs on every render
+    useEffect(() => {
+        mediaSessionActions.current = {
+            play: () => { resumeAudioContext(); togglePlay(); },
+            pause: () => { togglePlay(); },
+            prev: () => { resumeAudioContext(); playPrev(); },
+            next: () => { resumeAudioContext(); playNext(); },
+            seek: (details) => { seekTo(details.seekTime); },
+            stop: () => { togglePlay(); }
+        };
+    }, [togglePlay, playPrev, playNext, seekTo]);
+
+    useEffect(() => {
         if (!('mediaSession' in navigator)) return;
-        try {
-            const actions = [
-                ['play', () => { resumeAudioContext(); togglePlay(); }],
-                ['pause', () => { togglePlay(); }],
-                ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
-                ['nexttrack', () => { resumeAudioContext(); playNext(); }],
-                ['stop', () => { togglePlay(); }],
-                ['seekto', (details) => { seekTo(details.seekTime); }],
-                ['seekbackward', null], // FORCE NULL
-                ['seekforward', null]   // FORCE NULL
-            ];
 
-            for (const [action, handler] of actions) {
-                try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) { }
+        const setupStaticHandlers = () => {
+            try {
+                // Register handlers ONCE. They purely delegate to the refs.
+                navigator.mediaSession.setActionHandler('play', () => mediaSessionActions.current.play?.());
+                navigator.mediaSession.setActionHandler('pause', () => mediaSessionActions.current.pause?.());
+                navigator.mediaSession.setActionHandler('previoustrack', () => mediaSessionActions.current.prev?.());
+                navigator.mediaSession.setActionHandler('nexttrack', () => mediaSessionActions.current.next?.());
+                navigator.mediaSession.setActionHandler('stop', () => mediaSessionActions.current.stop?.());
+                navigator.mediaSession.setActionHandler('seekto', (d) => mediaSessionActions.current.seek?.(d));
+
+                // Force Null for Skips to ensure Next/Prev icons
+                navigator.mediaSession.setActionHandler('seekbackward', null);
+                navigator.mediaSession.setActionHandler('seekforward', null);
+            } catch (e) {
+                console.warn("MediaSession Setup Error", e);
             }
-        } catch (e) { }
-    };
+        };
 
-    useEffect(() => {
-        setupMediaSessionHandlers();
-    }, []);
+        setupStaticHandlers();
 
-    useEffect(() => {
-        setupMediaSessionHandlers();
-    }, [currentTrack]);
+        return () => {
+            // Cleanup
+            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
+            actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
+        };
+    }, []); // ABSOLUTELY NO DEPENDENCIES. RUNS ONCE.
 
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
