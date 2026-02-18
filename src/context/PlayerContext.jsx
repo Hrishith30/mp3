@@ -261,7 +261,8 @@ export const PlayerProvider = ({ children }) => {
             navigator.mediaSession.setActionHandler('seekbackward', null);
             navigator.mediaSession.setActionHandler('seekforward', null);
 
-            updateMediaSessionState('playing');
+            // Force position 0 for new track
+            updateMediaSessionState('playing', 0);
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
         }
@@ -452,6 +453,7 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Controls ---
     const playTrack = (track, resetQueue = true) => {
+        setCurrentTime(0); // Reset progress immediately on track change
         setCurrentTrack(track);
         if (resetQueue) {
             setQueue([track]);
