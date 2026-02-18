@@ -199,84 +199,6 @@ export const PlayerProvider = ({ children }) => {
         };
     }, []);
 
-    // --- YouTube Player Init ---
-    useEffect(() => {
-        if (!window.YT) {
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        }
-
-        window.onYouTubeIframeAPIReady = () => {
-            const initialVideoId = currentTrack?.videoId || '';
-            playerRef.current = new window.YT.Player('youtube-player', {
-                height: '100%',
-                width: '100%',
-                videoId: initialVideoId,
-                playerVars: {
-                    'autoplay': 0, // Never autoplay on refresh
-                    'playsinline': 1,
-                    'controls': 0,
-                    'disablekb': 1,
-                    'fs': 0,
-                    'rel': 0,
-                    'origin': window.location.origin
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError
-                }
-            });
-        };
-    }, []);
-
-    const onPlayerReady = (event) => {
-        isPlayerReady.current = true;
-        console.log("YouTube Player Ready");
-        if (playerRef.current) {
-            playerRef.current.setVolume(volume * 100);
-            if (currentTime > 0) {
-                playerRef.current.seekTo(currentTime);
-            }
-        }
-    };
-
-    const onPlayerStateChange = (event) => {
-        if (!playerRef.current) return;
-        const state = event.data;
-        const YT = window.YT;
-
-        if (state === YT.PlayerState.PLAYING) {
-            userIntentPaused.current = false;
-            setIsPlaying(true);
-
-            // Immediate duration fetch to prevent "0:00" stuck state
-            const dur = playerRef.current.getDuration();
-            setDuration(dur);
-
-            updateMediaSessionState('playing', playerRef.current.getCurrentTime(), dur);
-            // setupMediaSessionHandlers(); // REMOVED: Using Static Proxy now
-        } else if (state === YT.PlayerState.PAUSED) {
-            setIsPlaying(false);
-            updateMediaSessionState('paused');
-            // Auto-resume if not intentional
-            if (!userIntentPaused.current) {
-                setTimeout(() => {
-                    if (!userIntentPaused.current && playerRef.current) playerRef.current.playVideo();
-                }, 100);
-            }
-        } else if (state === YT.PlayerState.ENDED) {
-            handleTrackEnd();
-        }
-    };
-
-    const onPlayerError = (event) => {
-        console.error("Player Error:", event.data);
-        setTimeout(() => playNext(true), 1000);
-    };
-
     // --- Progress Loop ---
     useEffect(() => {
         const interval = setInterval(() => {
@@ -704,6 +626,84 @@ export const PlayerProvider = ({ children }) => {
             playNext(true);
         }
     };
+
+    // --- YouTube Player Handlers (Moved to bottom to avoid ReferenceError/TDZ) ---
+    const onPlayerReady = (event) => {
+        isPlayerReady.current = true;
+        console.log("YouTube Player Ready");
+        if (playerRef.current) {
+            playerRef.current.setVolume(volume * 100);
+            if (currentTime > 0) {
+                playerRef.current.seekTo(currentTime);
+            }
+        }
+    };
+
+    const onPlayerStateChange = (event) => {
+        if (!playerRef.current) return;
+        const state = event.data;
+        const YT = window.YT;
+
+        if (state === YT.PlayerState.PLAYING) {
+            userIntentPaused.current = false;
+            setIsPlaying(true);
+
+            // Immediate duration fetch to prevent "0:00" stuck state
+            const dur = playerRef.current.getDuration();
+            setDuration(dur);
+
+            updateMediaSessionState('playing', playerRef.current.getCurrentTime(), dur);
+        } else if (state === YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+            updateMediaSessionState('paused');
+            // Auto-resume if not intentional
+            if (!userIntentPaused.current) {
+                setTimeout(() => {
+                    if (!userIntentPaused.current && playerRef.current) playerRef.current.playVideo();
+                }, 100);
+            }
+        } else if (state === YT.PlayerState.ENDED) {
+            handleTrackEnd();
+        }
+    };
+
+    const onPlayerError = (event) => {
+        console.error("Player Error:", event.data);
+        setTimeout(() => playNext(true), 1000);
+    };
+
+    // --- YouTube Player Init ---
+    useEffect(() => {
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        window.onYouTubeIframeAPIReady = () => {
+            const initialVideoId = currentTrack?.videoId || '';
+            playerRef.current = new window.YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                videoId: initialVideoId,
+                playerVars: {
+                    'autoplay': 0, // Never autoplay on refresh
+                    'playsinline': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'rel': 0,
+                    'origin': window.location.origin
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        };
+    }, []);
 
     const seekTo = (time) => {
         if (playerRef.current) {
