@@ -271,12 +271,18 @@ export const PlayerProvider = ({ children }) => {
         setTimeout(() => playNext(true), 1000);
     };
 
-    // --- Progress Loop ---
     useEffect(() => {
         const interval = setInterval(() => {
             if (playerRef.current && isPlayerReady.current && isPlaying) {
-                setCurrentTime(playerRef.current.getCurrentTime());
-                setDuration(playerRef.current.getDuration());
+                const current = playerRef.current.getCurrentTime();
+                const total = playerRef.current.getDuration();
+                setCurrentTime(current);
+                setDuration(total);
+
+                // Keep MediaSession position in sync for iOS Lock Screen
+                if (total > 0) {
+                    updateMediaSessionState('playing');
+                }
             }
         }, 1000);
         return () => clearInterval(interval);
@@ -291,8 +297,6 @@ export const PlayerProvider = ({ children }) => {
             ['pause', () => { togglePlay(); }],
             ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
             ['nexttrack', () => { resumeAudioContext(); playNext(); }],
-            ['seekbackward', (details) => { seekTo(Math.max(currentTime - (details.seekOffset || 10), 0)); }],
-            ['seekforward', (details) => { seekTo(Math.min(currentTime + (details.seekOffset || 10), duration)); }],
             ['seekto', (details) => { seekTo(details.seekTime); }]
         ];
 
