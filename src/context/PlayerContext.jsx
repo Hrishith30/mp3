@@ -47,6 +47,21 @@ export const PlayerProvider = ({ children }) => {
         repeatMode: 0
     });
 
+    // --- Media Session Handlers (Stable) ---
+    // 1. Mutable Ref to hold latest logic (no re-renders)
+    const mediaSessionActions = useRef({
+        play: null, pause: null, prev: null, next: null, seek: null, stop: null
+    });
+
+    // 2. Stable Callbacks (never change identity, prevents flicker)
+    // We define these ONCE. They delegate to the ref.
+    const playHandler = () => mediaSessionActions.current.play?.();
+    const pauseHandler = () => mediaSessionActions.current.pause?.();
+    const prevHandler = () => mediaSessionActions.current.prev?.();
+    const nextHandler = () => mediaSessionActions.current.next?.();
+    const stopHandler = () => mediaSessionActions.current.stop?.();
+    const seekHandler = (d) => mediaSessionActions.current.seek?.(d);
+
     useEffect(() => {
         stateRef.current = { queue, currentIndex, isShuffle, repeatMode };
     }, [queue, currentIndex, isShuffle, repeatMode]);
@@ -233,8 +248,19 @@ export const PlayerProvider = ({ children }) => {
                     { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
-            // Re-enforce handlers AFTER metadata update to prevent OS reset
-            // setupMediaSessionHandlers(); // REMOVED: Using Static Proxy now
+            // Re-enforce handlers AFTER metadata update to FORCE iOS UI update
+            // Using stable handlers prevents loop/flicker
+            navigator.mediaSession.setActionHandler('play', playHandler);
+            navigator.mediaSession.setActionHandler('pause', pauseHandler);
+            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
+            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
+            navigator.mediaSession.setActionHandler('stop', stopHandler);
+            navigator.mediaSession.setActionHandler('seekto', seekHandler);
+
+            // CRITICAL: Explicitly NULL these to remove 10s skip buttons
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+
             updateMediaSessionState('playing');
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
@@ -668,18 +694,8 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // --- Media Session API (Static Proxy Pattern) ---
-    // Refs to hold latest function closures without re-binding handlers
-    const mediaSessionActions = useRef({
-        play: null,
-        pause: null,
-        prev: null,
-        next: null,
-        seek: null,
-        stop: null
-    });
-
-    // Update refs on every render
+    // --- Media Session API (Ref Updates) ---
+    // Update refs on every render so handlers always have latest closure
     useEffect(() => {
         mediaSessionActions.current = {
             play: () => { resumeAudioContext(); togglePlay(); },
@@ -691,35 +707,26 @@ export const PlayerProvider = ({ children }) => {
         };
     }, [togglePlay, playPrev, playNext, seekTo]);
 
+    // Initial Setup (Runs Once)
     useEffect(() => {
         if (!('mediaSession' in navigator)) return;
-
-        const setupStaticHandlers = () => {
-            try {
-                // Register handlers ONCE. They purely delegate to the refs.
-                navigator.mediaSession.setActionHandler('play', () => mediaSessionActions.current.play?.());
-                navigator.mediaSession.setActionHandler('pause', () => mediaSessionActions.current.pause?.());
-                navigator.mediaSession.setActionHandler('previoustrack', () => mediaSessionActions.current.prev?.());
-                navigator.mediaSession.setActionHandler('nexttrack', () => mediaSessionActions.current.next?.());
-                navigator.mediaSession.setActionHandler('stop', () => mediaSessionActions.current.stop?.());
-                navigator.mediaSession.setActionHandler('seekto', (d) => mediaSessionActions.current.seek?.(d));
-
-                // Force Null for Skips to ensure Next/Prev icons
-                navigator.mediaSession.setActionHandler('seekbackward', null);
-                navigator.mediaSession.setActionHandler('seekforward', null);
-            } catch (e) {
-                console.warn("MediaSession Setup Error", e);
-            }
-        };
-
-        setupStaticHandlers();
+        try {
+            navigator.mediaSession.setActionHandler('play', playHandler);
+            navigator.mediaSession.setActionHandler('pause', pauseHandler);
+            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
+            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
+            navigator.mediaSession.setActionHandler('stop', stopHandler);
+            navigator.mediaSession.setActionHandler('seekto', seekHandler);
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+        } catch (e) { console.warn("Init MS Error", e); }
 
         return () => {
             // Cleanup
             const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
             actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
         };
-    }, []); // ABSOLUTELY NO DEPENDENCIES. RUNS ONCE.
+    }, []);
 
     const value = {
         currentTrack,
