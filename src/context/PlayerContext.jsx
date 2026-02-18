@@ -251,8 +251,13 @@ export const PlayerProvider = ({ children }) => {
         if (state === YT.PlayerState.PLAYING) {
             userIntentPaused.current = false;
             setIsPlaying(true);
-            updateMediaSessionState('playing');
-            setupMediaSessionHandlers(); // Sustain handlers
+
+            // Immediate duration fetch to prevent "0:00" stuck state
+            const dur = playerRef.current.getDuration();
+            setDuration(dur);
+
+            updateMediaSessionState('playing', playerRef.current.getCurrentTime(), dur);
+            setupMediaSessionHandlers(); // Sustain handlers against OS resets
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionState('paused');
@@ -288,63 +293,52 @@ export const PlayerProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [isPlaying]);
 
-    // --- Media Session API ---
     const setupMediaSessionHandlers = () => {
         if (!('mediaSession' in navigator)) return;
-
         try {
-            // Standard Controls
-            navigator.mediaSession.setActionHandler('play', () => { resumeAudioContext(); togglePlay(); });
-            navigator.mediaSession.setActionHandler('pause', () => { togglePlay(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => { resumeAudioContext(); playPrev(); });
-            navigator.mediaSession.setActionHandler('nexttrack', () => { resumeAudioContext(); playNext(); });
-            navigator.mediaSession.setActionHandler('stop', () => { togglePlay(); });
+            const actions = [
+                ['play', () => { resumeAudioContext(); togglePlay(); }],
+                ['pause', () => { togglePlay(); }],
+                ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
+                ['nexttrack', () => { resumeAudioContext(); playNext(); }],
+                ['stop', () => { togglePlay(); }],
+                ['seekto', (details) => { seekTo(details.seekTime); }],
+                ['seekbackward', null], // FORCE NULL
+                ['seekforward', null]   // FORCE NULL
+            ];
 
-            // Scrubbing (Keep this if possible)
-            navigator.mediaSession.setActionHandler('seekto', (details) => { seekTo(details.seekTime); });
-
-            // FORCE REMOVE SEEK BUTTONS (iOS/Android 10s Skip)
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
-        } catch (error) {
-            console.warn("MediaSession setup warning:", error);
-        }
+            for (const [action, handler] of actions) {
+                try { navigator.mediaSession.setActionHandler(action, handler); } catch (e) { }
+            }
+        } catch (e) { }
     };
 
     useEffect(() => {
         setupMediaSessionHandlers();
-        return () => {
-            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
-            actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
-        };
     }, []);
 
     useEffect(() => {
-        // Re-apply handlers whenever track changes to ensure they stick
         setupMediaSessionHandlers();
     }, [currentTrack]);
 
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
-            const artist = track.artist || 'Muze Artist';
-            const artwork = [
-                { src: track.thumb || './music.png', sizes: '96x96', type: 'image/png' },
-                { src: track.thumb || './music.png', sizes: '128x128', type: 'image/png' },
-                { src: track.thumb || './music.png', sizes: '192x192', type: 'image/png' },
-                { src: track.thumb || './music.png', sizes: '256x256', type: 'image/png' },
-                { src: track.thumb || './music.png', sizes: '384x384', type: 'image/png' },
-                { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' },
-            ];
-
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: track.title,
-                artist: artist,
+                artist: track.artist || 'Muze Artist',
                 album: 'Muze Library',
-                artwork: artwork
+                artwork: [
+                    { src: track.thumb || './music.png', sizes: '96x96', type: 'image/png' },
+                    { src: track.thumb || './music.png', sizes: '128x128', type: 'image/png' },
+                    { src: track.thumb || './music.png', sizes: '192x192', type: 'image/png' },
+                    { src: track.thumb || './music.png', sizes: '256x256', type: 'image/png' },
+                    { src: track.thumb || './music.png', sizes: '384x384', type: 'image/png' },
+                    { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
+                ]
             });
-
-            // Force playing state immediately
+            // Re-enforce handlers AFTER metadata update to prevent OS reset
+            setupMediaSessionHandlers();
             updateMediaSessionState('playing');
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
@@ -355,7 +349,6 @@ export const PlayerProvider = ({ children }) => {
         if ('mediaSession' in navigator) {
             try {
                 navigator.mediaSession.playbackState = state;
-
                 const pos = manualTime !== null ? manualTime : currentTime;
                 const dur = manualDuration !== null ? manualDuration : duration;
 
@@ -366,9 +359,7 @@ export const PlayerProvider = ({ children }) => {
                         position: Math.min(Math.max(pos, 0), dur)
                     });
                 }
-            } catch (e) {
-                // Silently fail on position state errors
-            }
+            } catch (e) { }
         }
     }
 

@@ -4,20 +4,11 @@ import { PlayCircleIcon, HeartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartIconOutline } from '@heroicons/react/24/outline';
 
 const LibraryView = () => {
-    const { playTrack, removeFromFavorites, favorites } = usePlayer();
+    const { playTrack, removeFromFavorites, favorites, playAlbum, isShuffle, toggleShuffle } = usePlayer();
 
     // No local state needed, use context state
-    // const [favorites, setFavorites] = useState([]);
-    // useEffect loadFavorites removed
 
-    const handlePlay = (item) => {
-        playTrack({
-            videoId: item.id,
-            title: item.title,
-            artist: item.artist,
-            thumb: item.thumb
-        });
-    };
+    // No local state needed, use context state
 
     if (favorites.length === 0) {
         return (
@@ -43,9 +34,55 @@ const LibraryView = () => {
                 Your Library
             </h2>
 
+            <div className="flex items-center gap-4 mb-8">
+                <button
+                    onClick={() => {
+                        const playlist = favorites.map(item => ({
+                            videoId: item.id,
+                            title: item.title,
+                            artist: item.artist,
+                            thumb: item.thumb
+                        }));
+                        playAlbum(playlist, 0);
+                        if (isShuffle) toggleShuffle(); // Disable shuffle if playing linearly
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-full font-bold transition-all shadow-lg hover:scale-105"
+                >
+                    <PlayCircleIcon className="w-6 h-6" />
+                    Play All
+                </button>
+                <button
+                    onClick={() => {
+                        const playlist = favorites.map(item => ({
+                            videoId: item.id,
+                            title: item.title,
+                            artist: item.artist,
+                            thumb: item.thumb
+                        }));
+                        playAlbum(playlist, Math.floor(Math.random() * playlist.length));
+                        if (!isShuffle) toggleShuffle(); // Enable shuffle
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold transition-all border border-white/10 backdrop-blur-md"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 3.7 3.7 0 00-1.74 3.7c.074 1.293.138 2.6.138 3.962 0 1.362-.064 2.67-.138 3.962a4.006 4.006 0 003.7 3.7 3.7 3.7 0 001.74-3.7c-.092-1.209-.138-2.43-.138-3.662zM9 4.5l6.75 6.75M9 19.5l6.75-6.75M4.5 4.5h.008v.008H4.5V4.5zm0 6h.008v.008H4.5V10.5zm0 6h.008v.008H4.5V16.5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Shuffle
+                </button>
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {favorites.map((item) => (
-                    <div key={item.id} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => handlePlay(item)}>
+                {favorites.map((item, index) => (
+                    <div key={item.id} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => {
+                        const playlist = favorites.map(i => ({
+                            videoId: i.id,
+                            title: i.title,
+                            artist: i.artist,
+                            thumb: i.thumb
+                        }));
+                        playAlbum(playlist, index);
+                    }}>
                         <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                             <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
