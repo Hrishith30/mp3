@@ -280,10 +280,10 @@ export const PlayerProvider = ({ children }) => {
                 setCurrentTime(current);
                 setDuration(total);
 
-                // Precise sync with the latest values (fixing static time on iOS)
+                // Frequent sync for better hardware responsiveness
                 updateMediaSessionState('playing', current, total);
             }
-        }, 1000);
+        }, 500); // Higher frequency for smoother tracking
         return () => clearInterval(interval);
     }, [isPlaying]);
 
@@ -297,8 +297,9 @@ export const PlayerProvider = ({ children }) => {
             ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
             ['nexttrack', () => { resumeAudioContext(); playNext(); }],
             ['seekto', (details) => { seekTo(details.seekTime); }],
-            ['seekbackward', null], // Disable skips to force Next/Prev
-            ['seekforward', null],
+            // HIJACK: Force seek buttons to act as Next/Prev (Solves iOS/Android sticky icons)
+            ['seekbackward', () => { playPrev(); }],
+            ['seekforward', () => { playNext(); }],
             ['stop', () => { togglePlay(); }]
         ];
 
@@ -319,7 +320,7 @@ export const PlayerProvider = ({ children }) => {
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
-            const artist = track.artist || 'Muze Player';
+            const artist = track.artist || 'Muze Artist';
             const artwork = [
                 { src: track.thumb || './music.png', sizes: '96x96', type: 'image/png' },
                 { src: track.thumb || './music.png', sizes: '128x128', type: 'image/png' },
@@ -336,8 +337,8 @@ export const PlayerProvider = ({ children }) => {
                 artwork: artwork
             });
 
-            // Immediately sync state
-            updateMediaSessionState(isPlaying ? 'playing' : 'paused');
+            // Force playing state immediately
+            updateMediaSessionState('playing');
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
         }
