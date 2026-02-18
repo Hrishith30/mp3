@@ -271,6 +271,7 @@ export const PlayerProvider = ({ children }) => {
         setTimeout(() => playNext(true), 1000);
     };
 
+    // --- Progress Loop ---
     useEffect(() => {
         const interval = setInterval(() => {
             if (playerRef.current && isPlayerReady.current && isPlaying) {
@@ -279,10 +280,8 @@ export const PlayerProvider = ({ children }) => {
                 setCurrentTime(current);
                 setDuration(total);
 
-                // Keep MediaSession position in sync for iOS Lock Screen
-                if (total > 0) {
-                    updateMediaSessionState('playing');
-                }
+                // Precise sync with the latest values (fixing static time on iOS)
+                updateMediaSessionState('playing', current, total);
             }
         }, 1000);
         return () => clearInterval(interval);
@@ -297,34 +296,34 @@ export const PlayerProvider = ({ children }) => {
             ['pause', () => { togglePlay(); }],
             ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
             ['nexttrack', () => { resumeAudioContext(); playNext(); }],
-            ['seekto', (details) => { seekTo(details.seekTime); }]
+            ['seekto', (details) => { seekTo(details.seekTime); }],
+            ['seekbackward', null], // Explicitly disable to force Next/Prev on iOS
+            ['seekforward', null]   // Explicitly disable to force Next/Prev on iOS
         ];
 
         for (const [action, handler] of handlers) {
             try {
                 navigator.mediaSession.setActionHandler(action, handler);
             } catch (error) {
-                console.warn(`MediaSession action "${action}" not supported.`);
+                // Ignore errors for unsupported actions
             }
         }
 
         return () => {
-            for (const [action] of handlers) {
-                try {
-                    navigator.mediaSession.setActionHandler(action, null);
-                } catch { }
-            }
+            // Cleanup: Reset everything
+            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward'];
+            actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
         };
-    }, [isPlaying, currentTime, duration, currentTrack]);
+    }, [isPlaying, currentTrack]); // Only re-bind on play/track change
 
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: track.title,
-                artist: track.artist || 'Unknown Artist',
+                artist: track.artist || 'Muze Player',
                 artwork: [
-                    { src: track.thumb || 'https://placehold.co/512x512/333/333', sizes: '512x512', type: 'image/png' }
+                    { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
         } catch (error) {
@@ -332,18 +331,23 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    const updateMediaSessionState = (state) => {
+    const updateMediaSessionState = (state, manualTime = null, manualDuration = null) => {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = state;
 
-            if ('setPositionState' in navigator.mediaSession && duration > 0) {
+            const pos = manualTime !== null ? manualTime : currentTime;
+            const dur = manualDuration !== null ? manualDuration : duration;
+
+            if ('setPositionState' in navigator.mediaSession && dur > 0) {
                 try {
                     navigator.mediaSession.setPositionState({
-                        duration: duration,
+                        duration: dur,
                         playbackRate: 1,
-                        position: Math.min(currentTime, duration)
+                        position: Math.min(pos, dur)
                     });
-                } catch (e) { }
+                } catch (e) {
+                    console.warn("Failed sync", e);
+                }
             }
         }
     }
