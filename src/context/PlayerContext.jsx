@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 const PlayerContext = createContext();
 
@@ -55,12 +55,12 @@ export const PlayerProvider = ({ children }) => {
 
     // 2. Stable Callbacks (never change identity, prevents flicker)
     // We define these ONCE. They delegate to the ref.
-    const playHandler = () => mediaSessionActions.current.play?.();
-    const pauseHandler = () => mediaSessionActions.current.pause?.();
-    const prevHandler = () => mediaSessionActions.current.prev?.();
-    const nextHandler = () => mediaSessionActions.current.next?.();
-    const stopHandler = () => mediaSessionActions.current.stop?.();
-    const seekHandler = (d) => mediaSessionActions.current.seek?.(d);
+    const playHandler = useCallback(() => mediaSessionActions.current.play?.(), []);
+    const pauseHandler = useCallback(() => mediaSessionActions.current.pause?.(), []);
+    const prevHandler = useCallback(() => mediaSessionActions.current.prev?.(), []);
+    const nextHandler = useCallback(() => mediaSessionActions.current.next?.(), []);
+    const stopHandler = useCallback(() => mediaSessionActions.current.stop?.(), []);
+    const seekHandler = useCallback((d) => mediaSessionActions.current.seek?.(d), []);
 
     useEffect(() => {
         stateRef.current = { queue, currentIndex, isShuffle, repeatMode };
