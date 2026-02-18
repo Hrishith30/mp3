@@ -363,7 +363,7 @@ export const PlayerProvider = ({ children }) => {
                 ]
             });
             // Re-enforce handlers AFTER metadata update to prevent OS reset
-            setupMediaSessionHandlers();
+            // setupMediaSessionHandlers(); // REMOVED: Using Static Proxy now
             updateMediaSessionState('playing');
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
