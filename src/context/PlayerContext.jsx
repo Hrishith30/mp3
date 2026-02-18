@@ -34,6 +34,7 @@ export const PlayerProvider = ({ children }) => {
     const playerRef = useRef(null);
     const audioContextRef = useRef(null);
     const silenceOscillatorRef = useRef(null);
+    const silentAudioRef = useRef(null);
     const wakeLockRef = useRef(null);
     const isPlayerReady = useRef(false);
     const userIntentPaused = useRef(false);
