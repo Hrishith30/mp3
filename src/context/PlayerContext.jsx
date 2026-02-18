@@ -283,47 +283,73 @@ export const PlayerProvider = ({ children }) => {
     }, [isPlaying]);
 
     // --- Media Session API ---
-    const updateMediaSession = (track) => {
-        if ('mediaSession' in navigator) {
-            try {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: track.title,
-                    artist: track.artist || 'Unknown Artist',
-                    artwork: [
-                        { src: track.thumb || 'https://placehold.co/512x512/333/333', sizes: '512x512', type: 'image/png' }
-                    ]
-                });
+    useEffect(() => {
+        if (!('mediaSession' in navigator)) return;
 
-                navigator.mediaSession.setActionHandler('play', () => {
-                    resumeAudioContext();
-                    togglePlay();
-                });
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    togglePlay();
-                });
-                navigator.mediaSession.setActionHandler('previoustrack', () => {
-                    resumeAudioContext();
-                    playPrev();
-                });
-                navigator.mediaSession.setActionHandler('nexttrack', () => {
-                    resumeAudioContext();
-                    playNext();
-                });
+        const handlers = [
+            ['play', () => { resumeAudioContext(); togglePlay(); }],
+            ['pause', () => { togglePlay(); }],
+            ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
+            ['nexttrack', () => { resumeAudioContext(); playNext(); }],
+            ['seekbackward', (details) => { seekTo(Math.max(currentTime - (details.seekOffset || 10), 0)); }],
+            ['seekforward', (details) => { seekTo(Math.min(currentTime + (details.seekOffset || 10), duration)); }],
+            ['seekto', (details) => { seekTo(details.seekTime); }]
+        ];
+
+        for (const [action, handler] of handlers) {
+            try {
+                navigator.mediaSession.setActionHandler(action, handler);
             } catch (error) {
-                console.error("Media Session API Error:", error);
+                console.warn(`MediaSession action "${action}" not supported.`);
             }
+        }
+
+        return () => {
+            for (const [action] of handlers) {
+                try {
+                    navigator.mediaSession.setActionHandler(action, null);
+                } catch { }
+            }
+        };
+    }, [isPlaying, currentTime, duration, currentTrack]);
+
+    const updateMediaSession = (track) => {
+        if (!track || !('mediaSession' in navigator)) return;
+        try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title,
+                artist: track.artist || 'Unknown Artist',
+                artwork: [
+                    { src: track.thumb || 'https://placehold.co/512x512/333/333', sizes: '512x512', type: 'image/png' }
+                ]
+            });
+        } catch (error) {
+            console.error("Media Session Metadata Error:", error);
         }
     };
 
     const updateMediaSessionState = (state) => {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = state;
+
+            if ('setPositionState' in navigator.mediaSession && duration > 0) {
+                try {
+                    navigator.mediaSession.setPositionState({
+                        duration: duration,
+                        playbackRate: 1,
+                        position: Math.min(currentTime, duration)
+                    });
+                } catch (e) { }
+            }
         }
     }
 
     const resumeAudioContext = () => {
         if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
             audioContextRef.current.resume();
+        }
+        if (silentAudioRef.current && silentAudioRef.current.paused) {
+            silentAudioRef.current.play().catch(() => { });
         }
     }
 
