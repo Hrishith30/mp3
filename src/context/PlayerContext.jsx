@@ -297,35 +297,47 @@ export const PlayerProvider = ({ children }) => {
             ['previoustrack', () => { resumeAudioContext(); playPrev(); }],
             ['nexttrack', () => { resumeAudioContext(); playNext(); }],
             ['seekto', (details) => { seekTo(details.seekTime); }],
-            ['seekbackward', null], // Explicitly disable to force Next/Prev on iOS
-            ['seekforward', null]   // Explicitly disable to force Next/Prev on iOS
+            ['seekbackward', null], // Disable skips to force Next/Prev
+            ['seekforward', null],
+            ['stop', () => { togglePlay(); }]
         ];
 
         for (const [action, handler] of handlers) {
             try {
                 navigator.mediaSession.setActionHandler(action, handler);
             } catch (error) {
-                // Ignore errors for unsupported actions
+                // Action not supported
             }
         }
 
         return () => {
-            // Cleanup: Reset everything
-            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward'];
+            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
             actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
         };
-    }, [isPlaying, currentTrack]); // Only re-bind on play/track change
+    }, []); // Register ONCE to prevent UI flickering on iOS
 
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
+            const artist = track.artist || 'Muze Player';
+            const artwork = [
+                { src: track.thumb || './music.png', sizes: '96x96', type: 'image/png' },
+                { src: track.thumb || './music.png', sizes: '128x128', type: 'image/png' },
+                { src: track.thumb || './music.png', sizes: '192x192', type: 'image/png' },
+                { src: track.thumb || './music.png', sizes: '256x256', type: 'image/png' },
+                { src: track.thumb || './music.png', sizes: '384x384', type: 'image/png' },
+                { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' },
+            ];
+
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: track.title,
-                artist: track.artist || 'Muze Player',
-                artwork: [
-                    { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
-                ]
+                artist: artist,
+                album: 'Muze Library',
+                artwork: artwork
             });
+
+            // Immediately sync state
+            updateMediaSessionState(isPlaying ? 'playing' : 'paused');
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
         }
@@ -333,21 +345,21 @@ export const PlayerProvider = ({ children }) => {
 
     const updateMediaSessionState = (state, manualTime = null, manualDuration = null) => {
         if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = state;
+            try {
+                navigator.mediaSession.playbackState = state;
 
-            const pos = manualTime !== null ? manualTime : currentTime;
-            const dur = manualDuration !== null ? manualDuration : duration;
+                const pos = manualTime !== null ? manualTime : currentTime;
+                const dur = manualDuration !== null ? manualDuration : duration;
 
-            if ('setPositionState' in navigator.mediaSession && dur > 0) {
-                try {
+                if ('setPositionState' in navigator.mediaSession && dur > 0 && isFinite(pos) && isFinite(dur)) {
                     navigator.mediaSession.setPositionState({
-                        duration: dur,
-                        playbackRate: 1,
-                        position: Math.min(pos, dur)
+                        duration: Math.max(dur, 0.01),
+                        playbackRate: 1.0,
+                        position: Math.min(Math.max(pos, 0), dur)
                     });
-                } catch (e) {
-                    console.warn("Failed sync", e);
                 }
+            } catch (e) {
+                // Silently fail on position state errors
             }
         }
     }
