@@ -448,14 +448,30 @@ export const PlayerProvider = ({ children }) => {
                             const isDevotional = (text) => devotionalKeywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
                             const currentIsDevotional = isDevotional(current.title + ' ' + (current.artist || ''));
 
+                            // 2. Strict Language & Industry Mapping
+                            const industryMap = {
+                                'Telugu': 'Tollywood',
+                                'Hindi': 'Bollywood',
+                                'Tamil': 'Kollywood',
+                                'Malayalam': 'Mollywood',
+                                'Kannada': 'Sandalwood',
+                                'Punjabi': 'Pollywood'
+                            };
+                            const industry = industryMap[userLang] || userLang; // Default to language if no industry map
+
                             let searchQuery = '';
                             if (currentIsDevotional) {
-                                // Keep the vibe: Search specifically for devotional content
+                                // Keep the vibe: Search specifically for devotional content in user language
                                 searchQuery = `${userLang} ${current.artist} devotional songs`.trim();
                             } else {
-                                // Strict Filtering: "Telugu [Artist] hit film songs -devotional -bhakti"
-                                // "film songs" strongly implies soundtrack/movie music (non-religious)
-                                searchQuery = `${userLang} ${current.artist} hit film songs -devotional -bhakti -god -worship -mantra -sloka`.trim();
+                                // STRICT Non-Devotional Logic
+                                // If mapped to industry (e.g. Tollywood), use that for best results
+                                if (industryMap[userLang]) {
+                                    searchQuery = `${industry} hit songs ${current.artist} -devotional -bhakti -god -worship`.trim();
+                                } else {
+                                    // Fallback for others: "[Language] [Artist] hit songs"
+                                    searchQuery = `${userLang} ${current.artist} hit songs -devotional -bhakti -god -worship`.trim();
+                                }
                             }
 
                             console.log("Autoplay Logic:", { currentIsDevotional, searchQuery });
