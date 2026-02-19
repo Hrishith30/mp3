@@ -248,21 +248,24 @@ export const PlayerProvider = ({ children }) => {
                     { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
-            // Re-enforce handlers AFTER metadata update to FORCE iOS UI update
-            // Using stable handlers prevents loop/flicker
-            navigator.mediaSession.setActionHandler('play', playHandler);
-            navigator.mediaSession.setActionHandler('pause', pauseHandler);
-            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
-            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
-            navigator.mediaSession.setActionHandler('stop', stopHandler);
-            navigator.mediaSession.setActionHandler('seekto', seekHandler);
+            // Re-enforce handlers: Defer slightly to win race against iOS default behavior
+            setTimeout(() => {
+                try {
+                    navigator.mediaSession.setActionHandler('play', playHandler);
+                    navigator.mediaSession.setActionHandler('pause', pauseHandler);
+                    navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
+                    navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
+                    navigator.mediaSession.setActionHandler('stop', stopHandler);
+                    navigator.mediaSession.setActionHandler('seekto', seekHandler);
 
-            // CRITICAL: Explicitly NULL these to remove 10s skip buttons
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
+                    // CRITICAL: Explicitly NULL these to remove 10s skip buttons
+                    navigator.mediaSession.setActionHandler('seekbackward', null);
+                    navigator.mediaSession.setActionHandler('seekforward', null);
+                } catch (e) { console.warn("Deferred Handler Error", e); }
+            }, 50);
 
-            // Force position 0 for new track
-            updateMediaSessionState('playing', 0);
+            // Force position 0 with dummy duration to reset lock screen UI
+            updateMediaSessionState('playing', 0, 100);
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
         }
@@ -454,6 +457,7 @@ export const PlayerProvider = ({ children }) => {
     // --- Controls ---
     const playTrack = (track, resetQueue = true) => {
         setCurrentTime(0); // Reset progress immediately on track change
+        setDuration(100); // Set dummy duration to force UI update
         setCurrentTrack(track);
         if (resetQueue) {
             setQueue([track]);
