@@ -4,6 +4,35 @@ const PlayerContext = createContext();
 
 export const usePlayer = () => useContext(PlayerContext);
 
+// ✅ NUCLEAR FIX: Intercept navigator.mediaSession.setActionHandler at the browser level.
+// YouTube's iframe calls setActionHandler('seekbackward', fn) and setActionHandler('seekforward', fn)
+// which causes iOS to show 10s skip buttons instead of Prev/Next.
+// We wrap the native setActionHandler so ANY call to register seekbackward/seekforward/seekto
+// is silently blocked and overridden to null — no matter who calls it or when.
+const installMediaSessionTrap = () => {
+    if (!('mediaSession' in navigator)) return;
+    if (navigator.mediaSession._trapped) return; // Only install once
+
+    const originalSetActionHandler = navigator.mediaSession.setActionHandler.bind(navigator.mediaSession);
+
+    navigator.mediaSession.setActionHandler = function (action, handler) {
+        // Block YouTube (or anyone) from registering seek handlers
+        if (action === 'seekbackward' || action === 'seekforward' || action === 'seekto') {
+            // Always force these to null — iOS will then show Prev/Next buttons
+            originalSetActionHandler(action, null);
+            return;
+        }
+        // Allow all other actions (play, pause, previoustrack, nexttrack, stop)
+        originalSetActionHandler(action, handler);
+    };
+
+    navigator.mediaSession._trapped = true;
+    console.log("✅ MediaSession trap installed — seek handlers permanently blocked");
+};
+
+// Install the trap immediately when this module loads (before any YouTube iframe loads)
+installMediaSessionTrap();
+
 export const PlayerProvider = ({ children }) => {
     // --- Persistence: Load Initial State ---
     const [currentTrack, setCurrentTrack] = useState(() => {
@@ -37,11 +66,6 @@ export const PlayerProvider = ({ children }) => {
     const isPlayerReady = useRef(false);
     const userIntentPaused = useRef(false);
     const silentAudioRef = useRef(null);
-
-    // ✅ Interval ref that continuously re-asserts our media session handlers
-    // This is the KEY fix — YouTube re-registers its handlers asynchronously,
-    // so we fight back on a tight loop to always stay in control.
-    const mediaSessionGuardRef = useRef(null);
 
     const stateRef = useRef({
         queue: [],
@@ -111,73 +135,32 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // ✅ The core function that enforces our media session handlers.
-    // MUST set all seek handlers to null FIRST before setting play/pause/prev/next.
-    // Order matters — iOS evaluates the presence of seek handlers to decide button layout.
-    const enforceMediaSession = useCallback(() => {
+    // --- Register our own media session handlers (seek actions go through the trap = always null) ---
+    const registerMediaSessionHandlers = useCallback(() => {
         if (!('mediaSession' in navigator)) return;
         try {
-            // ✅ STEP 1: Kill all seek handlers FIRST
-            // If seekbackward/seekforward/seekto are registered (even by YouTube),
-            // iOS shows 10s skip buttons. Nulling them here overrides YouTube's handlers.
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
-            navigator.mediaSession.setActionHandler('seekto', null);
-
-            // ✅ STEP 2: Register our playback controls
+            // These go through our trap — seek ones will always be forced to null automatically
             navigator.mediaSession.setActionHandler('play', playHandler);
             navigator.mediaSession.setActionHandler('pause', pauseHandler);
             navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
             navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
             navigator.mediaSession.setActionHandler('stop', stopHandler);
-        } catch (e) {
-            // Silently ignore — browser may not support all actions
-        }
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+            navigator.mediaSession.setActionHandler('seekto', null);
+        } catch (e) { }
     }, [playHandler, pauseHandler, prevHandler, nextHandler, stopHandler]);
 
-    // ✅ Start the media session guard interval
-    // Runs every 500ms while playing to continuously override YouTube's handlers
-    const startMediaSessionGuard = useCallback(() => {
-        if (mediaSessionGuardRef.current) return; // Already running
-        console.log("MediaSession guard started");
-        mediaSessionGuardRef.current = setInterval(() => {
-            enforceMediaSession();
-        }, 500);
-    }, [enforceMediaSession]);
-
-    // ✅ Stop the guard when not needed (paused/stopped)
-    const stopMediaSessionGuard = useCallback(() => {
-        if (mediaSessionGuardRef.current) {
-            clearInterval(mediaSessionGuardRef.current);
-            mediaSessionGuardRef.current = null;
-            console.log("MediaSession guard stopped");
-        }
-    }, []);
-
-    // Start/stop guard based on play state
     useEffect(() => {
         if (isPlaying) {
-            startMediaSessionGuard();
             requestWakeLock();
-            if (silentAudioRef.current) {
-                silentAudioRef.current.play().catch(() => { });
-            }
+            if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
         } else {
-            stopMediaSessionGuard();
             releaseWakeLock();
-            if (silentAudioRef.current) {
-                silentAudioRef.current.pause();
-            }
+            if (silentAudioRef.current) silentAudioRef.current.pause();
         }
-        return () => { }; // Guard cleanup handled in its own effect
-    }, [isPlaying, startMediaSessionGuard, stopMediaSessionGuard]);
+    }, [isPlaying]);
 
-    // Cleanup guard on unmount
-    useEffect(() => {
-        return () => stopMediaSessionGuard();
-    }, [stopMediaSessionGuard]);
-
-    // Re-request wake lock on visibility change
     useEffect(() => {
         const handleVisibility = () => {
             if (document.visibilityState === 'visible' && isPlaying) {
@@ -185,11 +168,8 @@ export const PlayerProvider = ({ children }) => {
                 if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
                     audioContextRef.current.resume();
                 }
-                if (silentAudioRef.current) {
-                    silentAudioRef.current.play().catch(() => { });
-                }
-                // Immediately enforce on return to foreground
-                enforceMediaSession();
+                if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
+                registerMediaSessionHandlers();
             }
             if (document.visibilityState === 'hidden' && isPlaying && !userIntentPaused.current) {
                 if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
@@ -202,21 +182,19 @@ export const PlayerProvider = ({ children }) => {
         };
         document.addEventListener('visibilitychange', handleVisibility);
         return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, [isPlaying, enforceMediaSession]);
+    }, [isPlaying, registerMediaSessionHandlers]);
 
-    // --- Silent Audio + AudioContext Init (on first user gesture) ---
+    // --- Silent Audio + AudioContext Init ---
     useEffect(() => {
         const initAudioSession = () => {
-            // Silent looping <audio> — gives our app ownership of the iOS media session
             if (!silentAudioRef.current) {
                 const silentMp3 = "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAA100AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
                 const audio = new Audio(silentMp3);
                 audio.loop = true;
-                audio.volume = 0.001; // NOT zero — iOS ignores muted audio for session ownership
+                audio.volume = 0.001;
                 silentAudioRef.current = audio;
             }
 
-            // AudioContext keeps the audio session alive in background
             if (!audioContextRef.current) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
@@ -237,7 +215,6 @@ export const PlayerProvider = ({ children }) => {
 
             window.removeEventListener('click', initAudioSession);
             window.removeEventListener('touchstart', initAudioSession);
-            console.log("Audio session initialized");
         };
 
         window.addEventListener('click', initAudioSession);
@@ -405,12 +382,9 @@ export const PlayerProvider = ({ children }) => {
         userIntentPaused.current = false;
         addToHistory(track);
         updateMediaSession(track);
+        registerMediaSessionHandlers();
 
-        // ✅ Immediately enforce + ensure silent audio is running
-        enforceMediaSession();
-        if (silentAudioRef.current) {
-            silentAudioRef.current.play().catch(() => { });
-        }
+        if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
 
         if (playerRef.current && isPlayerReady.current) {
             playerRef.current.loadVideoById(track.videoId);
@@ -546,13 +520,10 @@ export const PlayerProvider = ({ children }) => {
             const dur = playerRef.current.getDuration();
             setDuration(dur);
             updateMediaSessionPosition('playing', playerRef.current.getCurrentTime(), dur);
-
-            // ✅ YouTube just fired PLAYING — it likely stole the media session.
-            // Enforce immediately AND the guard interval will keep enforcing every 500ms.
-            enforceMediaSession();
-            if (silentAudioRef.current) {
-                silentAudioRef.current.play().catch(() => { });
-            }
+            // ✅ Re-register immediately after YouTube fires PLAYING
+            // The trap handles any future YouTube calls automatically
+            registerMediaSessionHandlers();
+            if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionPosition('paused');
@@ -631,16 +602,16 @@ export const PlayerProvider = ({ children }) => {
         };
     }, [togglePlay, playPrev, playNext]);
 
-    // ✅ Initial MediaSession Setup — runs ONCE on mount
+    // Initial registration on mount
     useEffect(() => {
-        enforceMediaSession();
+        registerMediaSessionHandlers();
         return () => {
             ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop']
                 .forEach(action => {
                     try { navigator.mediaSession.setActionHandler(action, null); } catch { }
                 });
         };
-    }, [enforceMediaSession]);
+    }, [registerMediaSessionHandlers]);
 
     const value = {
         currentTrack,
