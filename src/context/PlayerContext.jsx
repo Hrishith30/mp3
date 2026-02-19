@@ -706,7 +706,7 @@ export const PlayerProvider = ({ children }) => {
             navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
             navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
             navigator.mediaSession.setActionHandler('stop', stopHandler);
-            navigator.mediaSession.setActionHandler('seekto', seekHandler);
+            navigator.mediaSession.setActionHandler('seekto', null);
             navigator.mediaSession.setActionHandler('seekbackward', null);
             navigator.mediaSession.setActionHandler('seekforward', null);
         } catch (e) { console.warn("Init MS Error", e); }
