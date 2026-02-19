@@ -9,7 +9,7 @@ export const PlayerProvider = ({ children }) => {
     const [currentTrack, setCurrentTrack] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicPlayer_currentTrack')) || null; } catch { return null; }
     });
-    const [isPlaying, setIsPlaying] = useState(false); // Always start paused
+    const [isPlaying, setIsPlaying] = useState(false);
     const [queue, setQueue] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicPlayer_queue')) || []; } catch { return []; }
     });
@@ -29,17 +29,20 @@ export const PlayerProvider = ({ children }) => {
     const [repeatMode, setRepeatMode] = useState(() => {
         try { return parseInt(localStorage.getItem('musicPlayer_repeatMode') || '0', 10); } catch { return 0; }
     }); // 0: off, 1: all, 2: one
-    const [originalQueue, setOriginalQueue] = useState([]);
 
     const playerRef = useRef(null);
     const audioContextRef = useRef(null);
     const silenceOscillatorRef = useRef(null);
-    const silentAudioRef = useRef(null);
     const wakeLockRef = useRef(null);
     const isPlayerReady = useRef(false);
     const userIntentPaused = useRef(false);
 
-    // Ref to hold latest state for callbacks (fixing stale closures)
+    // ✅ KEY FIX: Use a real <audio> element as the media session owner.
+    // iOS attaches lock screen controls to whichever <audio>/<video> element
+    // is "active". By keeping a silent looping <audio> element playing,
+    // OUR mediaSession handlers take ownership away from the YouTube iframe.
+    const silentAudioRef = useRef(null);
+
     const stateRef = useRef({
         queue: [],
         currentIndex: -1,
@@ -47,14 +50,11 @@ export const PlayerProvider = ({ children }) => {
         repeatMode: 0
     });
 
-    // --- Media Session Handlers (Stable) ---
-    // 1. Mutable Ref to hold latest logic (no re-renders)
+    // --- Stable Media Session Handler Refs ---
     const mediaSessionActions = useRef({
         play: null, pause: null, prev: null, next: null, stop: null
     });
 
-    // 2. Stable Callbacks (never change identity, prevents flicker)
-    // We define these ONCE. They delegate to the ref.
     const playHandler = useCallback(() => mediaSessionActions.current.play?.(), []);
     const pauseHandler = useCallback(() => mediaSessionActions.current.pause?.(), []);
     const prevHandler = useCallback(() => mediaSessionActions.current.prev?.(), []);
@@ -65,32 +65,14 @@ export const PlayerProvider = ({ children }) => {
         stateRef.current = { queue, currentIndex, isShuffle, repeatMode };
     }, [queue, currentIndex, isShuffle, repeatMode]);
 
-    // --- Persistence: Save State Changes ---
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_currentTrack', JSON.stringify(currentTrack));
-    }, [currentTrack]);
+    // --- Persistence ---
+    useEffect(() => { localStorage.setItem('musicPlayer_currentTrack', JSON.stringify(currentTrack)); }, [currentTrack]);
+    useEffect(() => { localStorage.setItem('musicPlayer_queue', JSON.stringify(queue)); }, [queue]);
+    useEffect(() => { localStorage.setItem('musicPlayer_currentIndex', currentIndex.toString()); }, [currentIndex]);
+    useEffect(() => { localStorage.setItem('musicPlayer_volume', volume.toString()); }, [volume]);
+    useEffect(() => { localStorage.setItem('musicPlayer_isShuffle', JSON.stringify(isShuffle)); }, [isShuffle]);
+    useEffect(() => { localStorage.setItem('musicPlayer_repeatMode', repeatMode.toString()); }, [repeatMode]);
 
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_queue', JSON.stringify(queue));
-    }, [queue]);
-
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_currentIndex', currentIndex.toString());
-    }, [currentIndex]);
-
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_volume', volume.toString());
-    }, [volume]);
-
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_isShuffle', JSON.stringify(isShuffle));
-    }, [isShuffle]);
-
-    useEffect(() => {
-        localStorage.setItem('musicPlayer_repeatMode', repeatMode.toString());
-    }, [repeatMode]);
-
-    // Save current time on unload or periodically
     useEffect(() => {
         const handleUnload = () => {
             if (playerRef.current && isPlayerReady.current) {
@@ -101,7 +83,6 @@ export const PlayerProvider = ({ children }) => {
         return () => window.removeEventListener('beforeunload', handleUnload);
     }, []);
 
-    // Also save time when paused
     useEffect(() => {
         if (!isPlaying && playerRef.current && isPlayerReady.current) {
             localStorage.setItem('musicPlayer_currentTime', playerRef.current.getCurrentTime().toString());
@@ -113,7 +94,6 @@ export const PlayerProvider = ({ children }) => {
         if ('wakeLock' in navigator) {
             try {
                 wakeLockRef.current = await navigator.wakeLock.request('screen');
-                console.log("Wake Lock active");
             } catch (err) {
                 console.warn(`Wake Lock Error: ${err.name}, ${err.message}`);
             }
@@ -125,24 +105,44 @@ export const PlayerProvider = ({ children }) => {
             try {
                 await wakeLockRef.current.release();
                 wakeLockRef.current = null;
-                console.log("Wake Lock released");
             } catch (err) {
                 console.error("Release Wake Lock Error:", err);
             }
         }
     };
 
+    // ✅ Silent Audio Setup — must be created on first user gesture.
+    // This is the CRITICAL element that gives our MediaSession ownership on iOS.
+    // It must be a real playing <audio> element, not just an AudioContext.
+    const initSilentAudio = useCallback(() => {
+        if (silentAudioRef.current) return;
+
+        // A valid silent MP3 as base64 — iOS needs a real audio element actively playing
+        // to respect our MediaSession over the YouTube iframe's session.
+        const silentMp3 = "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAA100AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+        const audio = new Audio(silentMp3);
+        audio.loop = true;
+        audio.volume = 0.001; // Nearly silent but NOT zero — iOS ignores zero-volume audio
+        silentAudioRef.current = audio;
+    }, []);
+
     useEffect(() => {
         if (isPlaying) {
             requestWakeLock();
-            if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
+            // ✅ Keep silent audio playing to maintain MediaSession ownership
+            if (silentAudioRef.current) {
+                silentAudioRef.current.play().catch(() => { });
+            }
         } else {
             releaseWakeLock();
-            if (silentAudioRef.current) silentAudioRef.current.pause();
+            if (silentAudioRef.current) {
+                silentAudioRef.current.pause();
+            }
         }
     }, [isPlaying]);
 
-    // Re-request wake lock when page becomes visible again
+    // Re-request wake lock on visibility change
     useEffect(() => {
         const handleVisibility = () => {
             if (document.visibilityState === 'visible' && isPlaying) {
@@ -150,12 +150,14 @@ export const PlayerProvider = ({ children }) => {
                 if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
                     audioContextRef.current.resume();
                 }
+                // Re-assert MediaSession ownership when returning to foreground
+                if (silentAudioRef.current) {
+                    silentAudioRef.current.play().catch(() => { });
+                }
+                reRegisterMediaSession();
             }
-            // Proactive Resume: If system paused us while hidden
             if (document.visibilityState === 'hidden' && isPlaying && !userIntentPaused.current) {
-                // Play silent audio to keep session alive (CRITICAL for iOS/Android)
                 if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
-
                 setTimeout(() => {
                     if (playerRef.current && isPlayerReady.current && !userIntentPaused.current) {
                         playerRef.current.playVideo();
@@ -167,19 +169,12 @@ export const PlayerProvider = ({ children }) => {
         return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, [isPlaying]);
 
-    // --- Audio Hacks (Oscillator & Silent Track) ---
+    // --- AudioContext (keeps audio session alive in background) ---
     useEffect(() => {
         const initAudioContext = () => {
-            if (audioContextRef.current && silentAudioRef.current) return;
+            if (audioContextRef.current) return;
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
-
-            // 1. Silent Loopable Audio (Mobile Audio Session Hack)
-            if (!silentAudioRef.current) {
-                const audio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=");
-                audio.loop = true;
-                silentAudioRef.current = audio;
-            }
 
             const ac = new AudioContext();
             audioContextRef.current = ac;
@@ -188,30 +183,33 @@ export const PlayerProvider = ({ children }) => {
             const g = ac.createGain();
             o.type = 'sine';
             o.frequency.value = 60;
-            g.gain.value = 0.001;
+            g.gain.value = 0.0001;
             o.connect(g);
             g.connect(ac.destination);
             o.start();
             silenceOscillatorRef.current = o;
 
             if (ac.state === 'suspended') ac.resume();
-            console.log("Audio Resilience Hacks Started");
+
+            // ✅ Init silent audio on first user gesture
+            initSilentAudio();
+            console.log("Audio session initialized");
         };
 
-        const handleInteractions = () => {
+        const handleInteraction = () => {
             initAudioContext();
-            window.removeEventListener('click', handleInteractions);
-            window.removeEventListener('touchstart', handleInteractions);
+            window.removeEventListener('click', handleInteraction);
+            window.removeEventListener('touchstart', handleInteraction);
         };
 
-        window.addEventListener('click', handleInteractions);
-        window.addEventListener('touchstart', handleInteractions);
+        window.addEventListener('click', handleInteraction);
+        window.addEventListener('touchstart', handleInteraction);
 
         return () => {
-            window.removeEventListener('click', handleInteractions);
-            window.removeEventListener('touchstart', handleInteractions);
+            window.removeEventListener('click', handleInteraction);
+            window.removeEventListener('touchstart', handleInteraction);
         };
-    }, []);
+    }, [initSilentAudio]);
 
     // --- Progress Loop ---
     useEffect(() => {
@@ -221,14 +219,13 @@ export const PlayerProvider = ({ children }) => {
                 const total = playerRef.current.getDuration();
                 setCurrentTime(current);
                 setDuration(total);
-
-                // Frequent sync for better hardware responsiveness
-                updateMediaSessionState('playing', current, total);
+                updateMediaSessionPosition('playing', current, total);
             }
-        }, 500); // Higher frequency for smoother tracking
+        }, 500);
         return () => clearInterval(interval);
     }, [isPlaying]);
 
+    // --- Media Session Metadata ---
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
@@ -245,29 +242,26 @@ export const PlayerProvider = ({ children }) => {
                     { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
-            // Force position 0 with dummy duration to reset lock screen UI
-            updateMediaSessionState('playing', 0, 100);
+            navigator.mediaSession.playbackState = 'playing';
         } catch (error) {
             console.error("Media Session Metadata Error:", error);
         }
     };
 
-    const updateMediaSessionState = (state, manualTime = null, manualDuration = null) => {
-        if ('mediaSession' in navigator) {
-            try {
-                navigator.mediaSession.playbackState = state;
-                const pos = manualTime !== null ? manualTime : currentTime;
-                const dur = manualDuration !== null ? manualDuration : duration;
-
-                if ('setPositionState' in navigator.mediaSession && dur > 0 && isFinite(pos) && isFinite(dur)) {
-                    navigator.mediaSession.setPositionState({
-                        duration: Math.max(dur, 0.01),
-                        playbackRate: 1.0,
-                        position: Math.min(Math.max(pos, 0), dur)
-                    });
-                }
-            } catch (e) { }
-        }
+    const updateMediaSessionPosition = (state, manualTime = null, manualDuration = null) => {
+        if (!('mediaSession' in navigator)) return;
+        try {
+            navigator.mediaSession.playbackState = state;
+            const pos = manualTime !== null ? manualTime : currentTime;
+            const dur = manualDuration !== null ? manualDuration : duration;
+            if ('setPositionState' in navigator.mediaSession && dur > 0 && isFinite(pos) && isFinite(dur)) {
+                navigator.mediaSession.setPositionState({
+                    duration: Math.max(dur, 0.01),
+                    playbackRate: 1.0,
+                    position: Math.min(Math.max(pos, 0), dur)
+                });
+            }
+        } catch (e) { }
     };
 
     const resumeAudioContext = () => {
@@ -279,70 +273,52 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
+    // ✅ Re-register all media session handlers
+    // Called after every track change and on visibility restore
+    // so iOS never reverts to the YouTube iframe's session
+    const reRegisterMediaSession = useCallback(() => {
+        if (!('mediaSession' in navigator)) return;
+        try {
+            // ✅ CRITICAL: All seek handlers null → iOS shows ⏮ ⏯ ⏭ not 10s skip buttons
+            navigator.mediaSession.setActionHandler('seekto', null);
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+
+            navigator.mediaSession.setActionHandler('play', playHandler);
+            navigator.mediaSession.setActionHandler('pause', pauseHandler);
+            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
+            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
+            navigator.mediaSession.setActionHandler('stop', stopHandler);
+        } catch (e) {
+            console.warn("MediaSession re-register error", e);
+        }
+    }, [playHandler, pauseHandler, prevHandler, nextHandler, stopHandler]);
+
     // --- History & Favorites ---
     const [history, setHistory] = useState(() => {
-        try {
-            const saved = localStorage.getItem('musicHistory');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error("Failed to parse history", e);
-            return [];
-        }
+        try { return JSON.parse(localStorage.getItem('musicHistory')) || []; } catch { return []; }
     });
-
     const [favorites, setFavorites] = useState(() => {
-        try {
-            const saved = localStorage.getItem('musicFavorites');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error("Failed to parse favorites", e);
-            return [];
-        }
+        try { return JSON.parse(localStorage.getItem('musicFavorites')) || []; } catch { return []; }
     });
-
     const [favoriteAlbums, setFavoriteAlbums] = useState(() => {
-        try {
-            const saved = localStorage.getItem('musicFavoriteAlbums');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error("Failed to parse favorite albums", e);
-            return [];
-        }
+        try { return JSON.parse(localStorage.getItem('musicFavoriteAlbums')) || []; } catch { return []; }
     });
 
-    useEffect(() => {
-        localStorage.setItem('musicFavorites', JSON.stringify(favorites));
-    }, [favorites]);
-
-    useEffect(() => {
-        localStorage.setItem('musicFavoriteAlbums', JSON.stringify(favoriteAlbums));
-    }, [favoriteAlbums]);
-
-    useEffect(() => {
-        localStorage.setItem('musicHistory', JSON.stringify(history));
-    }, [history]);
+    useEffect(() => { localStorage.setItem('musicFavorites', JSON.stringify(favorites)); }, [favorites]);
+    useEffect(() => { localStorage.setItem('musicFavoriteAlbums', JSON.stringify(favoriteAlbums)); }, [favoriteAlbums]);
+    useEffect(() => { localStorage.setItem('musicHistory', JSON.stringify(history)); }, [history]);
 
     const addToHistory = (track) => {
         setHistory(prev => {
             const filtered = prev.filter(item => item.id !== track.videoId);
-            const newHistory = [{
-                id: track.videoId,
-                title: track.title,
-                artist: track.artist,
-                thumb: track.thumb
-            }, ...filtered];
-            return newHistory.slice(0, 20);
+            return [{ id: track.videoId, title: track.title, artist: track.artist, thumb: track.thumb }, ...filtered].slice(0, 20);
         });
     };
 
     const addToFavorites = (track) => {
         if (!favorites.some(item => item.id === track.videoId)) {
-            setFavorites(prev => [{
-                id: track.videoId,
-                title: track.title,
-                artist: track.artist,
-                thumb: track.thumb
-            }, ...prev]);
+            setFavorites(prev => [{ id: track.videoId, title: track.title, artist: track.artist, thumb: track.thumb }, ...prev]);
             return true;
         }
         return false;
@@ -352,24 +328,16 @@ export const PlayerProvider = ({ children }) => {
         setFavorites(prev => prev.filter(item => item.id !== videoId));
     };
 
-    const isFavorite = (videoId) => {
-        return favorites.some(item => item.id === videoId);
-    };
+    const isFavorite = (videoId) => favorites.some(item => item.id === videoId);
 
-    const isAlbumFavorite = (albumId) => {
-        return favoriteAlbums.some(id => String(id) === String(albumId));
-    };
+    const isAlbumFavorite = (albumId) => favoriteAlbums.some(id => String(id) === String(albumId));
 
     const toggleAlbumFavorites = async (albumId) => {
         const idStr = String(albumId);
         const isLiked = favoriteAlbums.some(id => String(id) === idStr);
 
-        console.log(`Toggling album ${idStr}. Currently liked: ${isLiked}`);
-
         if (isLiked) {
-            // REMOVE
             setFavoriteAlbums(prev => prev.filter(id => String(id) !== idStr));
-
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/album/${idStr}`);
                 const data = await response.json();
@@ -377,34 +345,19 @@ export const PlayerProvider = ({ children }) => {
                     const trackIdsToRemove = data.tracks.map(t => t.videoId || t.id);
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(item.id)));
                 }
-            } catch (e) {
-                console.error("Failed to remove album tracks", e);
-            }
-
+            } catch (e) { console.error("Failed to remove album tracks", e); }
         } else {
-            // ADD
             setFavoriteAlbums(prev => [idStr, ...prev]);
-
             try {
-                console.log(`Fetching album data for: ${idStr}`);
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/album/${idStr}`);
                 const data = await response.json();
-
-                console.log("Album API Response:", data);
-
                 if (data && data.tracks) {
-                    console.log(`Found ${data.tracks.length} tracks.`);
                     const albumArt = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '';
                     const albumArtist = data.artists ? data.artists.map(a => a.name).join(', ') : (data.artist || 'Unknown');
-
                     let newTracks = [];
                     data.tracks.forEach(track => {
                         const trackId = track.videoId || track.id;
-                        if (!trackId) {
-                            console.warn("Track missing ID:", track);
-                            return;
-                        }
-
+                        if (!trackId) return;
                         if (!favorites.some(item => String(item.id) === String(trackId))) {
                             newTracks.push({
                                 id: trackId,
@@ -414,22 +367,14 @@ export const PlayerProvider = ({ children }) => {
                             });
                         }
                     });
-
                     if (newTracks.length > 0) {
-                        console.log(`Adding ${newTracks.length} new tracks to favorites.`);
                         setFavorites(prev => {
                             const uniqueNew = newTracks.filter(n => !prev.some(p => String(p.id) === String(n.id)));
                             return [...uniqueNew, ...prev];
                         });
-                    } else {
-                        console.log("No new tracks to add (all duplicates or empty).");
                     }
-                } else {
-                    console.warn("Invalid album data structure:", data);
                 }
-            } catch (error) {
-                console.error("Failed to add album to favorites", error);
-            }
+            } catch (error) { console.error("Failed to add album to favorites", error); }
         }
     };
 
@@ -442,10 +387,17 @@ export const PlayerProvider = ({ children }) => {
             setQueue([track]);
             setCurrentIndex(0);
         }
-        updateMediaSession(track);
         userIntentPaused.current = false;
-
         addToHistory(track);
+
+        // ✅ Update metadata then re-register handlers so iOS picks up our session
+        updateMediaSession(track);
+        reRegisterMediaSession();
+
+        // ✅ Ensure silent audio is playing to assert MediaSession ownership over YouTube
+        if (silentAudioRef.current) {
+            silentAudioRef.current.play().catch(() => { });
+        }
 
         if (playerRef.current && isPlayerReady.current) {
             playerRef.current.loadVideoById(track.videoId);
@@ -460,24 +412,25 @@ export const PlayerProvider = ({ children }) => {
         playTrack(tracks[startIndex], false);
     };
 
-    const toggleShuffle = () => setIsShuffle(!isShuffle);
+    const toggleShuffle = () => setIsShuffle(prev => !prev);
 
-    const toggleRepeat = () => {
-        setRepeatMode(prev => (prev + 1) % 3);
-    };
+    const toggleRepeat = () => setRepeatMode(prev => (prev + 1) % 3);
 
-    const togglePlay = () => {
+    const togglePlay = useCallback(() => {
         if (!playerRef.current) return;
         if (isPlaying) {
             userIntentPaused.current = true;
             playerRef.current.pauseVideo();
+            updateMediaSessionPosition('paused');
         } else {
+            resumeAudioContext();
             userIntentPaused.current = false;
             playerRef.current.playVideo();
+            updateMediaSessionPosition('playing');
         }
-    };
+    }, [isPlaying]);
 
-    const playNext = async (auto = false) => {
+    const playNext = useCallback(async (auto = false) => {
         const { queue, currentIndex, isShuffle, repeatMode } = stateRef.current;
         if (queue.length === 0) return;
 
@@ -490,12 +443,10 @@ export const PlayerProvider = ({ children }) => {
             } while (nextIndex === currentIndex && queue.length > 1 && attempts < 5);
         } else {
             nextIndex = currentIndex + 1;
-
             if (nextIndex >= queue.length) {
                 if (repeatMode === 1) {
-                    nextIndex = 0; // Loop All
+                    nextIndex = 0;
                 } else if (repeatMode === 0) {
-                    // Try to fetch similar songs
                     const current = queue[currentIndex];
                     if (current) {
                         try {
@@ -503,54 +454,41 @@ export const PlayerProvider = ({ children }) => {
                             const eras = ['2000s Hits', '2010s Hits', '2020s Hits', 'Latest Hits', 'Cinema Hits'];
                             const randomEra = eras[Math.floor(Math.random() * eras.length)];
                             const searchQuery = `${userLang} ${current.artist} ${randomEra}`.trim();
-
-                            console.log("Queue ended. Autoplaying smarter recommendations for:", searchQuery);
                             const response = await fetch(`https://musicbackend-pkfi.vercel.app/search?query=${encodeURIComponent(searchQuery)}&filter=songs`);
                             const data = await response.json();
-
                             if (data && data.length > 0) {
-                                const newTracks = data.map(item => {
-                                    const thumb = item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : '';
-                                    const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
-                                    return {
-                                        videoId: item.videoId || item.id,
-                                        title: item.title,
-                                        artist: artist,
-                                        thumb: thumb
-                                    };
-                                }).filter(t => !queue.some(q => q.videoId === t.videoId));
+                                const newTracks = data.map(item => ({
+                                    videoId: item.videoId || item.id,
+                                    title: item.title,
+                                    artist: item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown'),
+                                    thumb: item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : ''
+                                })).filter(t => !queue.some(q => q.videoId === t.videoId));
 
                                 if (newTracks.length > 0) {
                                     const tracksToAdd = newTracks.slice(0, 5);
-                                    const newQueue = [...queue, ...tracksToAdd];
-                                    setQueue(newQueue);
-
+                                    setQueue([...queue, ...tracksToAdd]);
                                     setCurrentIndex(queue.length);
                                     playTrack(tracksToAdd[0], false);
-                                    console.log(`Autoplay: Added ${tracksToAdd.length} tracks using query: ${searchQuery}`);
                                     return;
                                 }
                             }
-                        } catch (e) {
-                            console.error("Autoplay failed", e);
-                        }
+                        } catch (e) { console.error("Autoplay failed", e); }
                     }
                     return;
-                }
-                else return;
+                } else return;
             }
         }
 
         setCurrentIndex(nextIndex);
         playTrack(queue[nextIndex], false);
-    };
+    }, []);
 
-    const playPrev = () => {
+    const playPrev = useCallback(() => {
         const { queue, currentIndex } = stateRef.current;
         if (queue.length === 0) return;
 
         if (currentTime > 3) {
-            playerRef.current.seekTo(0);
+            playerRef.current?.seekTo(0);
             return;
         }
 
@@ -559,7 +497,7 @@ export const PlayerProvider = ({ children }) => {
 
         setCurrentIndex(prevIndex);
         playTrack(queue[prevIndex], false);
-    };
+    }, [currentTime]);
 
     const addToQueue = (track) => {
         const newQueue = [...queue, track];
@@ -581,7 +519,7 @@ export const PlayerProvider = ({ children }) => {
     };
 
     // --- YouTube Player Handlers ---
-    const onPlayerReady = (event) => {
+    const onPlayerReady = () => {
         isPlayerReady.current = true;
         console.log("YouTube Player Ready");
         if (playerRef.current) {
@@ -600,17 +538,25 @@ export const PlayerProvider = ({ children }) => {
         if (state === YT.PlayerState.PLAYING) {
             userIntentPaused.current = false;
             setIsPlaying(true);
-
             const dur = playerRef.current.getDuration();
             setDuration(dur);
+            updateMediaSessionPosition('playing', playerRef.current.getCurrentTime(), dur);
 
-            updateMediaSessionState('playing', playerRef.current.getCurrentTime(), dur);
+            // ✅ Re-assert our MediaSession every time YouTube starts playing.
+            // The YouTube iframe tries to steal the media session on play —
+            // calling reRegisterMediaSession() immediately takes it back.
+            reRegisterMediaSession();
+            if (silentAudioRef.current) {
+                silentAudioRef.current.play().catch(() => { });
+            }
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
-            updateMediaSessionState('paused');
+            updateMediaSessionPosition('paused');
             if (!userIntentPaused.current) {
                 setTimeout(() => {
-                    if (!userIntentPaused.current && playerRef.current) playerRef.current.playVideo();
+                    if (!userIntentPaused.current && playerRef.current) {
+                        playerRef.current.playVideo();
+                    }
                 }, 100);
             }
         } else if (state === YT.PlayerState.ENDED) {
@@ -670,10 +616,7 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // --- Media Session API (Ref Updates) ---
-    // Update refs on every render so handlers always have latest closure
-    // NOTE: seekto, seekbackward, seekforward are intentionally NOT registered
-    // so that iOS lock screen shows Prev/Play/Next buttons instead of 10s skip buttons
+    // --- Media Session Action Ref Updates ---
     useEffect(() => {
         mediaSessionActions.current = {
             play: () => { resumeAudioContext(); togglePlay(); },
@@ -684,7 +627,8 @@ export const PlayerProvider = ({ children }) => {
         };
     }, [togglePlay, playPrev, playNext]);
 
-    // Initial Setup (Runs Once)
+    // ✅ Initial MediaSession Setup — runs ONCE
+    // All seek handlers explicitly null → iOS lock screen shows ⏮ ⏯ ⏭
     useEffect(() => {
         if (!('mediaSession' in navigator)) return;
         try {
@@ -694,16 +638,20 @@ export const PlayerProvider = ({ children }) => {
             navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
             navigator.mediaSession.setActionHandler('stop', stopHandler);
 
-            // ✅ FIX: Set all seek handlers to null so iOS shows
-            // Prev / Play-Pause / Next buttons instead of 10s skip buttons
+            // ✅ CRITICAL FIX: null = iOS shows Prev/Next buttons
+            // Any function registered here = iOS shows 10s skip buttons instead
             navigator.mediaSession.setActionHandler('seekto', null);
             navigator.mediaSession.setActionHandler('seekbackward', null);
             navigator.mediaSession.setActionHandler('seekforward', null);
-        } catch (e) { console.warn("Init MS Error", e); }
+        } catch (e) {
+            console.warn("MediaSession init error", e);
+        }
 
         return () => {
-            const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
-            actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
+            ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop']
+                .forEach(action => {
+                    try { navigator.mediaSession.setActionHandler(action, null); } catch { }
+                });
         };
     }, []);
 
