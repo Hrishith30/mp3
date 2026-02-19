@@ -36,12 +36,12 @@ export const PlayerProvider = ({ children }) => {
     const wakeLockRef = useRef(null);
     const isPlayerReady = useRef(false);
     const userIntentPaused = useRef(false);
-
-    // ✅ KEY FIX: Use a real <audio> element as the media session owner.
-    // iOS attaches lock screen controls to whichever <audio>/<video> element
-    // is "active". By keeping a silent looping <audio> element playing,
-    // OUR mediaSession handlers take ownership away from the YouTube iframe.
     const silentAudioRef = useRef(null);
+
+    // ✅ Interval ref that continuously re-asserts our media session handlers
+    // This is the KEY fix — YouTube re-registers its handlers asynchronously,
+    // so we fight back on a tight loop to always stay in control.
+    const mediaSessionGuardRef = useRef(null);
 
     const stateRef = useRef({
         queue: [],
@@ -111,36 +111,71 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // ✅ Silent Audio Setup — must be created on first user gesture.
-    // This is the CRITICAL element that gives our MediaSession ownership on iOS.
-    // It must be a real playing <audio> element, not just an AudioContext.
-    const initSilentAudio = useCallback(() => {
-        if (silentAudioRef.current) return;
+    // ✅ The core function that enforces our media session handlers.
+    // MUST set all seek handlers to null FIRST before setting play/pause/prev/next.
+    // Order matters — iOS evaluates the presence of seek handlers to decide button layout.
+    const enforceMediaSession = useCallback(() => {
+        if (!('mediaSession' in navigator)) return;
+        try {
+            // ✅ STEP 1: Kill all seek handlers FIRST
+            // If seekbackward/seekforward/seekto are registered (even by YouTube),
+            // iOS shows 10s skip buttons. Nulling them here overrides YouTube's handlers.
+            navigator.mediaSession.setActionHandler('seekbackward', null);
+            navigator.mediaSession.setActionHandler('seekforward', null);
+            navigator.mediaSession.setActionHandler('seekto', null);
 
-        // A valid silent MP3 as base64 — iOS needs a real audio element actively playing
-        // to respect our MediaSession over the YouTube iframe's session.
-        const silentMp3 = "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAA100AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+            // ✅ STEP 2: Register our playback controls
+            navigator.mediaSession.setActionHandler('play', playHandler);
+            navigator.mediaSession.setActionHandler('pause', pauseHandler);
+            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
+            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
+            navigator.mediaSession.setActionHandler('stop', stopHandler);
+        } catch (e) {
+            // Silently ignore — browser may not support all actions
+        }
+    }, [playHandler, pauseHandler, prevHandler, nextHandler, stopHandler]);
 
-        const audio = new Audio(silentMp3);
-        audio.loop = true;
-        audio.volume = 0.001; // Nearly silent but NOT zero — iOS ignores zero-volume audio
-        silentAudioRef.current = audio;
+    // ✅ Start the media session guard interval
+    // Runs every 500ms while playing to continuously override YouTube's handlers
+    const startMediaSessionGuard = useCallback(() => {
+        if (mediaSessionGuardRef.current) return; // Already running
+        console.log("MediaSession guard started");
+        mediaSessionGuardRef.current = setInterval(() => {
+            enforceMediaSession();
+        }, 500);
+    }, [enforceMediaSession]);
+
+    // ✅ Stop the guard when not needed (paused/stopped)
+    const stopMediaSessionGuard = useCallback(() => {
+        if (mediaSessionGuardRef.current) {
+            clearInterval(mediaSessionGuardRef.current);
+            mediaSessionGuardRef.current = null;
+            console.log("MediaSession guard stopped");
+        }
     }, []);
 
+    // Start/stop guard based on play state
     useEffect(() => {
         if (isPlaying) {
+            startMediaSessionGuard();
             requestWakeLock();
-            // ✅ Keep silent audio playing to maintain MediaSession ownership
             if (silentAudioRef.current) {
                 silentAudioRef.current.play().catch(() => { });
             }
         } else {
+            stopMediaSessionGuard();
             releaseWakeLock();
             if (silentAudioRef.current) {
                 silentAudioRef.current.pause();
             }
         }
-    }, [isPlaying]);
+        return () => { }; // Guard cleanup handled in its own effect
+    }, [isPlaying, startMediaSessionGuard, stopMediaSessionGuard]);
+
+    // Cleanup guard on unmount
+    useEffect(() => {
+        return () => stopMediaSessionGuard();
+    }, [stopMediaSessionGuard]);
 
     // Re-request wake lock on visibility change
     useEffect(() => {
@@ -150,11 +185,11 @@ export const PlayerProvider = ({ children }) => {
                 if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
                     audioContextRef.current.resume();
                 }
-                // Re-assert MediaSession ownership when returning to foreground
                 if (silentAudioRef.current) {
                     silentAudioRef.current.play().catch(() => { });
                 }
-                reRegisterMediaSession();
+                // Immediately enforce on return to foreground
+                enforceMediaSession();
             }
             if (document.visibilityState === 'hidden' && isPlaying && !userIntentPaused.current) {
                 if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
@@ -167,49 +202,51 @@ export const PlayerProvider = ({ children }) => {
         };
         document.addEventListener('visibilitychange', handleVisibility);
         return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, [isPlaying]);
+    }, [isPlaying, enforceMediaSession]);
 
-    // --- AudioContext (keeps audio session alive in background) ---
+    // --- Silent Audio + AudioContext Init (on first user gesture) ---
     useEffect(() => {
-        const initAudioContext = () => {
-            if (audioContextRef.current) return;
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
+        const initAudioSession = () => {
+            // Silent looping <audio> — gives our app ownership of the iOS media session
+            if (!silentAudioRef.current) {
+                const silentMp3 = "data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAA100AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+                const audio = new Audio(silentMp3);
+                audio.loop = true;
+                audio.volume = 0.001; // NOT zero — iOS ignores muted audio for session ownership
+                silentAudioRef.current = audio;
+            }
 
-            const ac = new AudioContext();
-            audioContextRef.current = ac;
+            // AudioContext keeps the audio session alive in background
+            if (!audioContextRef.current) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    const ac = new AudioContext();
+                    audioContextRef.current = ac;
+                    const o = ac.createOscillator();
+                    const g = ac.createGain();
+                    o.type = 'sine';
+                    o.frequency.value = 60;
+                    g.gain.value = 0.0001;
+                    o.connect(g);
+                    g.connect(ac.destination);
+                    o.start();
+                    silenceOscillatorRef.current = o;
+                    if (ac.state === 'suspended') ac.resume();
+                }
+            }
 
-            const o = ac.createOscillator();
-            const g = ac.createGain();
-            o.type = 'sine';
-            o.frequency.value = 60;
-            g.gain.value = 0.0001;
-            o.connect(g);
-            g.connect(ac.destination);
-            o.start();
-            silenceOscillatorRef.current = o;
-
-            if (ac.state === 'suspended') ac.resume();
-
-            // ✅ Init silent audio on first user gesture
-            initSilentAudio();
+            window.removeEventListener('click', initAudioSession);
+            window.removeEventListener('touchstart', initAudioSession);
             console.log("Audio session initialized");
         };
 
-        const handleInteraction = () => {
-            initAudioContext();
-            window.removeEventListener('click', handleInteraction);
-            window.removeEventListener('touchstart', handleInteraction);
-        };
-
-        window.addEventListener('click', handleInteraction);
-        window.addEventListener('touchstart', handleInteraction);
-
+        window.addEventListener('click', initAudioSession);
+        window.addEventListener('touchstart', initAudioSession);
         return () => {
-            window.removeEventListener('click', handleInteraction);
-            window.removeEventListener('touchstart', handleInteraction);
+            window.removeEventListener('click', initAudioSession);
+            window.removeEventListener('touchstart', initAudioSession);
         };
-    }, [initSilentAudio]);
+    }, []);
 
     // --- Progress Loop ---
     useEffect(() => {
@@ -273,27 +310,6 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // ✅ Re-register all media session handlers
-    // Called after every track change and on visibility restore
-    // so iOS never reverts to the YouTube iframe's session
-    const reRegisterMediaSession = useCallback(() => {
-        if (!('mediaSession' in navigator)) return;
-        try {
-            // ✅ CRITICAL: All seek handlers null → iOS shows ⏮ ⏯ ⏭ not 10s skip buttons
-            navigator.mediaSession.setActionHandler('seekto', null);
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
-
-            navigator.mediaSession.setActionHandler('play', playHandler);
-            navigator.mediaSession.setActionHandler('pause', pauseHandler);
-            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
-            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
-            navigator.mediaSession.setActionHandler('stop', stopHandler);
-        } catch (e) {
-            console.warn("MediaSession re-register error", e);
-        }
-    }, [playHandler, pauseHandler, prevHandler, nextHandler, stopHandler]);
-
     // --- History & Favorites ---
     const [history, setHistory] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicHistory')) || []; } catch { return []; }
@@ -335,7 +351,6 @@ export const PlayerProvider = ({ children }) => {
     const toggleAlbumFavorites = async (albumId) => {
         const idStr = String(albumId);
         const isLiked = favoriteAlbums.some(id => String(id) === idStr);
-
         if (isLiked) {
             setFavoriteAlbums(prev => prev.filter(id => String(id) !== idStr));
             try {
@@ -389,12 +404,10 @@ export const PlayerProvider = ({ children }) => {
         }
         userIntentPaused.current = false;
         addToHistory(track);
-
-        // ✅ Update metadata then re-register handlers so iOS picks up our session
         updateMediaSession(track);
-        reRegisterMediaSession();
 
-        // ✅ Ensure silent audio is playing to assert MediaSession ownership over YouTube
+        // ✅ Immediately enforce + ensure silent audio is running
+        enforceMediaSession();
         if (silentAudioRef.current) {
             silentAudioRef.current.play().catch(() => { });
         }
@@ -413,7 +426,6 @@ export const PlayerProvider = ({ children }) => {
     };
 
     const toggleShuffle = () => setIsShuffle(prev => !prev);
-
     const toggleRepeat = () => setRepeatMode(prev => (prev + 1) % 3);
 
     const togglePlay = useCallback(() => {
@@ -463,7 +475,6 @@ export const PlayerProvider = ({ children }) => {
                                     artist: item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown'),
                                     thumb: item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : ''
                                 })).filter(t => !queue.some(q => q.videoId === t.videoId));
-
                                 if (newTracks.length > 0) {
                                     const tracksToAdd = newTracks.slice(0, 5);
                                     setQueue([...queue, ...tracksToAdd]);
@@ -478,7 +489,6 @@ export const PlayerProvider = ({ children }) => {
                 } else return;
             }
         }
-
         setCurrentIndex(nextIndex);
         playTrack(queue[nextIndex], false);
     }, []);
@@ -486,15 +496,12 @@ export const PlayerProvider = ({ children }) => {
     const playPrev = useCallback(() => {
         const { queue, currentIndex } = stateRef.current;
         if (queue.length === 0) return;
-
         if (currentTime > 3) {
             playerRef.current?.seekTo(0);
             return;
         }
-
         let prevIndex = currentIndex - 1;
         if (prevIndex < 0) prevIndex = queue.length - 1;
-
         setCurrentIndex(prevIndex);
         playTrack(queue[prevIndex], false);
     }, [currentTime]);
@@ -524,9 +531,7 @@ export const PlayerProvider = ({ children }) => {
         console.log("YouTube Player Ready");
         if (playerRef.current) {
             playerRef.current.setVolume(volume * 100);
-            if (currentTime > 0) {
-                playerRef.current.seekTo(currentTime);
-            }
+            if (currentTime > 0) playerRef.current.seekTo(currentTime);
         }
     };
 
@@ -542,10 +547,9 @@ export const PlayerProvider = ({ children }) => {
             setDuration(dur);
             updateMediaSessionPosition('playing', playerRef.current.getCurrentTime(), dur);
 
-            // ✅ Re-assert our MediaSession every time YouTube starts playing.
-            // The YouTube iframe tries to steal the media session on play —
-            // calling reRegisterMediaSession() immediately takes it back.
-            reRegisterMediaSession();
+            // ✅ YouTube just fired PLAYING — it likely stole the media session.
+            // Enforce immediately AND the guard interval will keep enforcing every 500ms.
+            enforceMediaSession();
             if (silentAudioRef.current) {
                 silentAudioRef.current.play().catch(() => { });
             }
@@ -627,33 +631,16 @@ export const PlayerProvider = ({ children }) => {
         };
     }, [togglePlay, playPrev, playNext]);
 
-    // ✅ Initial MediaSession Setup — runs ONCE
-    // All seek handlers explicitly null → iOS lock screen shows ⏮ ⏯ ⏭
+    // ✅ Initial MediaSession Setup — runs ONCE on mount
     useEffect(() => {
-        if (!('mediaSession' in navigator)) return;
-        try {
-            navigator.mediaSession.setActionHandler('play', playHandler);
-            navigator.mediaSession.setActionHandler('pause', pauseHandler);
-            navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
-            navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
-            navigator.mediaSession.setActionHandler('stop', stopHandler);
-
-            // ✅ CRITICAL FIX: null = iOS shows Prev/Next buttons
-            // Any function registered here = iOS shows 10s skip buttons instead
-            navigator.mediaSession.setActionHandler('seekto', null);
-            navigator.mediaSession.setActionHandler('seekbackward', null);
-            navigator.mediaSession.setActionHandler('seekforward', null);
-        } catch (e) {
-            console.warn("MediaSession init error", e);
-        }
-
+        enforceMediaSession();
         return () => {
             ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop']
                 .forEach(action => {
                     try { navigator.mediaSession.setActionHandler(action, null); } catch { }
                 });
         };
-    }, []);
+    }, [enforceMediaSession]);
 
     const value = {
         currentTrack,
