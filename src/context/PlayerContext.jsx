@@ -248,22 +248,6 @@ export const PlayerProvider = ({ children }) => {
                     { src: track.thumb || './music.png', sizes: '512x512', type: 'image/png' }
                 ]
             });
-            // Re-enforce handlers: Defer slightly to win race against iOS default behavior
-            setTimeout(() => {
-                try {
-                    navigator.mediaSession.setActionHandler('play', playHandler);
-                    navigator.mediaSession.setActionHandler('pause', pauseHandler);
-                    navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
-                    navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
-                    navigator.mediaSession.setActionHandler('stop', stopHandler);
-                    navigator.mediaSession.setActionHandler('seekto', seekHandler);
-
-                    // CRITICAL: Explicitly NULL these to remove 10s skip buttons
-                    navigator.mediaSession.setActionHandler('seekbackward', null);
-                    navigator.mediaSession.setActionHandler('seekforward', null);
-                } catch (e) { console.warn("Deferred Handler Error", e); }
-            }, 50);
-
             // Force position 0 with dummy duration to reset lock screen UI
             updateMediaSessionState('playing', 0, 100);
         } catch (error) {
