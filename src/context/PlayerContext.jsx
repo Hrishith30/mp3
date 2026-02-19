@@ -50,7 +50,7 @@ export const PlayerProvider = ({ children }) => {
     // --- Media Session Handlers (Stable) ---
     // 1. Mutable Ref to hold latest logic (no re-renders)
     const mediaSessionActions = useRef({
-        play: null, pause: null, prev: null, next: null, seek: null, stop: null
+        play: null, pause: null, prev: null, next: null, stop: null
     });
 
     // 2. Stable Callbacks (never change identity, prevents flicker)
@@ -60,7 +60,6 @@ export const PlayerProvider = ({ children }) => {
     const prevHandler = useCallback(() => mediaSessionActions.current.prev?.(), []);
     const nextHandler = useCallback(() => mediaSessionActions.current.next?.(), []);
     const stopHandler = useCallback(() => mediaSessionActions.current.stop?.(), []);
-    const seekHandler = useCallback((d) => mediaSessionActions.current.seek?.(d), []);
 
     useEffect(() => {
         stateRef.current = { queue, currentIndex, isShuffle, repeatMode };
@@ -230,8 +229,6 @@ export const PlayerProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [isPlaying]);
 
-    // --- Media Session API (Static Proxy Pattern) moved to bottom ---
-
     const updateMediaSession = (track) => {
         if (!track || !('mediaSession' in navigator)) return;
         try {
@@ -271,7 +268,7 @@ export const PlayerProvider = ({ children }) => {
                 }
             } catch (e) { }
         }
-    }
+    };
 
     const resumeAudioContext = () => {
         if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
@@ -280,7 +277,7 @@ export const PlayerProvider = ({ children }) => {
         if (silentAudioRef.current && silentAudioRef.current.paused) {
             silentAudioRef.current.play().catch(() => { });
         }
-    }
+    };
 
     // --- History & Favorites ---
     const [history, setHistory] = useState(() => {
@@ -360,7 +357,6 @@ export const PlayerProvider = ({ children }) => {
     };
 
     const isAlbumFavorite = (albumId) => {
-        // Safe string comparison
         return favoriteAlbums.some(id => String(id) === String(albumId));
     };
 
@@ -409,7 +405,6 @@ export const PlayerProvider = ({ children }) => {
                             return;
                         }
 
-                        // Strict check to avoid duplicates
                         if (!favorites.some(item => String(item.id) === String(trackId))) {
                             newTracks.push({
                                 id: trackId,
@@ -440,8 +435,8 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Controls ---
     const playTrack = (track, resetQueue = true) => {
-        setCurrentTime(0); // Reset progress immediately on track change
-        setDuration(100); // Set dummy duration to force UI update
+        setCurrentTime(0);
+        setDuration(100);
         setCurrentTrack(track);
         if (resetQueue) {
             setQueue([track]);
@@ -450,7 +445,6 @@ export const PlayerProvider = ({ children }) => {
         updateMediaSession(track);
         userIntentPaused.current = false;
 
-        // Add to history
         addToHistory(track);
 
         if (playerRef.current && isPlayerReady.current) {
@@ -489,7 +483,6 @@ export const PlayerProvider = ({ children }) => {
 
         let nextIndex;
         if (isShuffle) {
-            // Simple random for now, avoid current if possible
             let attempts = 0;
             do {
                 nextIndex = Math.floor(Math.random() * queue.length);
@@ -498,7 +491,6 @@ export const PlayerProvider = ({ children }) => {
         } else {
             nextIndex = currentIndex + 1;
 
-            // --- Autoplay Logic ---
             if (nextIndex >= queue.length) {
                 if (repeatMode === 1) {
                     nextIndex = 0; // Loop All
@@ -510,7 +502,6 @@ export const PlayerProvider = ({ children }) => {
                             const userLang = localStorage.getItem('userLanguage') || '';
                             const eras = ['2000s Hits', '2010s Hits', '2020s Hits', 'Latest Hits', 'Cinema Hits'];
                             const randomEra = eras[Math.floor(Math.random() * eras.length)];
-                            // Prioritize language first, then artist, then era
                             const searchQuery = `${userLang} ${current.artist} ${randomEra}`.trim();
 
                             console.log("Queue ended. Autoplaying smarter recommendations for:", searchQuery);
@@ -518,7 +509,6 @@ export const PlayerProvider = ({ children }) => {
                             const data = await response.json();
 
                             if (data && data.length > 0) {
-                                // Filter out duplicates (already in queue)
                                 const newTracks = data.map(item => {
                                     const thumb = item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : '';
                                     const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
@@ -531,11 +521,10 @@ export const PlayerProvider = ({ children }) => {
                                 }).filter(t => !queue.some(q => q.videoId === t.videoId));
 
                                 if (newTracks.length > 0) {
-                                    const tracksToAdd = newTracks.slice(0, 5); // Add up to 5 similar songs
+                                    const tracksToAdd = newTracks.slice(0, 5);
                                     const newQueue = [...queue, ...tracksToAdd];
                                     setQueue(newQueue);
 
-                                    // Play the first new track
                                     setCurrentIndex(queue.length);
                                     playTrack(tracksToAdd[0], false);
                                     console.log(`Autoplay: Added ${tracksToAdd.length} tracks using query: ${searchQuery}`);
@@ -546,10 +535,9 @@ export const PlayerProvider = ({ children }) => {
                             console.error("Autoplay failed", e);
                         }
                     }
-                    // If autoplay failed or no new tracks, stop.
                     return;
                 }
-                else return; // Stop
+                else return;
             }
         }
 
@@ -592,7 +580,7 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    // --- YouTube Player Handlers (Moved to bottom to avoid ReferenceError/TDZ) ---
+    // --- YouTube Player Handlers ---
     const onPlayerReady = (event) => {
         isPlayerReady.current = true;
         console.log("YouTube Player Ready");
@@ -613,7 +601,6 @@ export const PlayerProvider = ({ children }) => {
             userIntentPaused.current = false;
             setIsPlaying(true);
 
-            // Immediate duration fetch to prevent "0:00" stuck state
             const dur = playerRef.current.getDuration();
             setDuration(dur);
 
@@ -621,7 +608,6 @@ export const PlayerProvider = ({ children }) => {
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionState('paused');
-            // Auto-resume if not intentional
             if (!userIntentPaused.current) {
                 setTimeout(() => {
                     if (!userIntentPaused.current && playerRef.current) playerRef.current.playVideo();
@@ -653,7 +639,7 @@ export const PlayerProvider = ({ children }) => {
                 width: '100%',
                 videoId: initialVideoId,
                 playerVars: {
-                    'autoplay': 0, // Never autoplay on refresh
+                    'autoplay': 0,
                     'playsinline': 1,
                     'controls': 0,
                     'disablekb': 1,
@@ -675,7 +661,7 @@ export const PlayerProvider = ({ children }) => {
             playerRef.current.seekTo(time, true);
             setCurrentTime(time);
         }
-    }
+    };
 
     const adjustVolume = (newVolume) => {
         setVolume(newVolume);
@@ -686,16 +672,17 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Media Session API (Ref Updates) ---
     // Update refs on every render so handlers always have latest closure
+    // NOTE: seekto, seekbackward, seekforward are intentionally NOT registered
+    // so that iOS lock screen shows Prev/Play/Next buttons instead of 10s skip buttons
     useEffect(() => {
         mediaSessionActions.current = {
             play: () => { resumeAudioContext(); togglePlay(); },
             pause: () => { togglePlay(); },
             prev: () => { resumeAudioContext(); playPrev(); },
             next: () => { resumeAudioContext(); playNext(); },
-            seek: (details) => { seekTo(details.seekTime); },
             stop: () => { togglePlay(); }
         };
-    }, [togglePlay, playPrev, playNext, seekTo]);
+    }, [togglePlay, playPrev, playNext]);
 
     // Initial Setup (Runs Once)
     useEffect(() => {
@@ -706,13 +693,15 @@ export const PlayerProvider = ({ children }) => {
             navigator.mediaSession.setActionHandler('previoustrack', prevHandler);
             navigator.mediaSession.setActionHandler('nexttrack', nextHandler);
             navigator.mediaSession.setActionHandler('stop', stopHandler);
+
+            // ✅ FIX: Set all seek handlers to null so iOS shows
+            // Prev / Play-Pause / Next buttons instead of 10s skip buttons
             navigator.mediaSession.setActionHandler('seekto', null);
             navigator.mediaSession.setActionHandler('seekbackward', null);
             navigator.mediaSession.setActionHandler('seekforward', null);
         } catch (e) { console.warn("Init MS Error", e); }
 
         return () => {
-            // Cleanup
             const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekto', 'seekbackward', 'seekforward', 'stop'];
             actions.forEach(action => { try { navigator.mediaSession.setActionHandler(action, null); } catch { } });
         };
@@ -737,7 +726,6 @@ export const PlayerProvider = ({ children }) => {
         adjustVolume,
         playTrack,
         playAlbum,
-        // New exports
         addToFavorites,
         removeFromFavorites,
         isFavorite,
