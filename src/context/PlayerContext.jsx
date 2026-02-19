@@ -436,19 +436,49 @@ export const PlayerProvider = ({ children }) => {
                     const current = queue[currentIndex];
                     if (current) {
                         try {
-                            const userLang = localStorage.getItem('userLanguage') || '';
-                            const eras = ['2000s Hits', '2010s Hits', '2020s Hits', 'Latest Hits', 'Cinema Hits'];
-                            const randomEra = eras[Math.floor(Math.random() * eras.length)];
-                            const searchQuery = `${userLang} ${current.artist} ${randomEra}`.trim();
+                            const userLangRaw = localStorage.getItem('userLanguage') || '';
+                            const userLang = userLangRaw.split(',')[0].trim();
+
+                            // 1. Detect if CURRENT song is Devotional
+                            const devotionalKeywords = [
+                                'God', 'Jesus', 'Hanuman', 'Ram', 'Krishna', 'Worship', 'Bhakti', 'Aarti', 'Devotional',
+                                'Mantra', 'Stotram', 'Sahasranam', 'Gospel', 'Praise', 'Murugan', 'Shiva', 'Ganesh',
+                                'Durga', 'Amma', 'Om ', 'Namah', 'Chalisa', 'Bhajan', 'Keerthana', 'Sloka', 'Suprabhatam'
+                            ];
+                            const isDevotional = (text) => devotionalKeywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
+                            const currentIsDevotional = isDevotional(current.title + ' ' + (current.artist || ''));
+
+                            let searchQuery = '';
+                            if (currentIsDevotional) {
+                                // Keep the vibe: Search specifically for devotional content
+                                searchQuery = `${userLang} ${current.artist} devotional songs`.trim();
+                            } else {
+                                // Strict Filtering: "Telugu [Artist] hit film songs -devotional -bhakti"
+                                // "film songs" strongly implies soundtrack/movie music (non-religious)
+                                searchQuery = `${userLang} ${current.artist} hit film songs -devotional -bhakti -god -worship -mantra -sloka`.trim();
+                            }
+
+                            console.log("Autoplay Logic:", { currentIsDevotional, searchQuery });
+
                             const response = await fetch(`https://musicbackend-pkfi.vercel.app/search?query=${encodeURIComponent(searchQuery)}&filter=songs`);
                             const data = await response.json();
+
                             if (data && data.length > 0) {
-                                const newTracks = data.map(item => ({
+                                let newTracks = data.map(item => ({
                                     videoId: item.videoId || item.id,
                                     title: item.title,
                                     artist: item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown'),
                                     thumb: item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : ''
-                                })).filter(t => !queue.some(q => q.videoId === t.videoId));
+                                }));
+
+                                // 2. JS Side Strict Filtering (Double Safety)
+                                if (!currentIsDevotional) {
+                                    newTracks = newTracks.filter(t => !isDevotional(t.title));
+                                }
+
+                                // 3. Deduplicate
+                                newTracks = newTracks.filter(t => !queue.some(q => q.videoId === t.videoId));
+
                                 if (newTracks.length > 0) {
                                     const tracksToAdd = newTracks.slice(0, 5);
                                     setQueue([...queue, ...tracksToAdd]);
