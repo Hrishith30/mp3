@@ -162,7 +162,7 @@ export const PlayerProvider = ({ children }) => {
             if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
         } else {
             releaseWakeLock();
-            if (silentAudioRef.current) silentAudioRef.current.pause();
+            // DO NOT pause silentAudio here - doing so drops Bluetooth/CarPlay connection
         }
     }, [isPlaying]);
 
