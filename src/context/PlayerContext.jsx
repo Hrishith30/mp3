@@ -691,12 +691,32 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Media Session Action Ref Updates ---
     useEffect(() => {
+        let prevTimeout;
+        let nextTimeout;
+
         mediaSessionActions.current = {
             play: () => { resumeAudioContext(); togglePlay(); },
             pause: () => { togglePlay(); },
-            prev: () => { resumeAudioContext(); playPrev(); },
-            next: () => { resumeAudioContext(); playNext(); },
+            prev: () => {
+                clearTimeout(prevTimeout);
+                prevTimeout = setTimeout(() => {
+                    resumeAudioContext();
+                    playPrev();
+                }, 500);
+            },
+            next: () => {
+                clearTimeout(nextTimeout);
+                nextTimeout = setTimeout(() => {
+                    resumeAudioContext();
+                    playNext();
+                }, 500);
+            },
             stop: () => { togglePlay(); }
+        };
+
+        return () => {
+            clearTimeout(prevTimeout);
+            clearTimeout(nextTimeout);
         };
     }, [togglePlay, playPrev, playNext]);
 
