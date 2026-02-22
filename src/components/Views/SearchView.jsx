@@ -137,22 +137,30 @@ const SearchView = ({ setActiveView }) => {
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {results.map((item) => {
+                {results.map((item, index) => {
                     const thumb = item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : '';
-                    const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
+                    let artist = 'Unknown Artist';
+                    if (item.artists && Array.isArray(item.artists)) {
+                        artist = item.artists.map(a => a.name).join(', ');
+                    } else if (item.artist) {
+                        artist = typeof item.artist === 'string' ? item.artist : (item.artist.name || 'Unknown Artist');
+                    }
+
+                    const isArtist = item.resultType === 'artist' || activeFilter === 'artists';
+                    const itemId = item.videoId || item.browseId || item.id;
 
                     return (
-                        <div key={item.videoId} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => handlePlay(item)}>
+                        <div key={itemId || index} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => handlePlay(item)}>
                             <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
-                                <img src={thumb} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                <img src={thumb} alt={item.title || item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                     <PlayCircleIconSolid className="w-12 h-12 text-white drop-shadow-lg" />
                                 </div>
                                 {(() => {
-                                    const id = item.videoId || item.id || item.browseId;
+                                    const id = itemId;
                                     let isLiked = false;
-                                    if (activeFilter === 'songs') isLiked = isFavorite(id);
-                                    else if (activeFilter === 'artists') isLiked = isArtistFavorite(id);
+                                    if (item.resultType === 'song' || activeFilter === 'songs') isLiked = isFavorite(id);
+                                    else if (isArtist) isLiked = isArtistFavorite(id);
                                     else isLiked = isAlbumFavorite(id);
 
                                     return (
@@ -160,13 +168,13 @@ const SearchView = ({ setActiveView }) => {
                                             className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (activeFilter === 'songs') {
+                                                if (item.resultType === 'song' || activeFilter === 'songs') {
                                                     if (isLiked) removeFromFavorites(id);
                                                     else addToFavorites({ videoId: id, title: item.title, artist: artist, thumb: thumb });
-                                                } else if (activeFilter === 'artists') {
+                                                } else if (isArtist) {
                                                     toggleArtistFavorite(id);
                                                 } else {
-                                                    toggleAlbumFavorites(id, activeFilter === 'playlists' ? 'playlist' : 'album');
+                                                    toggleAlbumFavorites(id, (item.resultType === 'playlist' || activeFilter === 'playlists') ? 'playlist' : 'album');
                                                 }
                                             }}
                                         >
@@ -181,7 +189,7 @@ const SearchView = ({ setActiveView }) => {
                             </div>
                             <h4 className="text-white font-medium truncate text-sm">{item.title || item.name}</h4>
                             <p className="text-gray-400 text-xs truncate">
-                                {activeFilter === 'artists' ? 'Artist' : artist}
+                                {isArtist ? 'Artist' : artist}
                             </p>
                         </div>
                     );

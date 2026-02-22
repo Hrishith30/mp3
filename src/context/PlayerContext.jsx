@@ -401,12 +401,42 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
-    const toggleArtistFavorite = (artistId) => {
+    const toggleArtistFavorite = async (artistId) => {
         const idStr = String(artistId);
-        if (isArtistFavorite(idStr)) {
+        const isLiked = isArtistFavorite(idStr);
+        if (isLiked) {
             setFavoriteArtists(prev => prev.filter(id => String(id) !== idStr));
+            try {
+                const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
+                const data = await response.json();
+                if (data && data.songs && data.songs.results) {
+                    const trackIdsToRemove = data.songs.results.map(t => t.videoId || t.id);
+                    setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(item.id)));
+                }
+            } catch (e) {
+                console.error("Failed to remove artist tracks", e);
+            }
         } else {
             setFavoriteArtists(prev => [idStr, ...prev]);
+            try {
+                const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
+                const data = await response.json();
+                if (data && data.songs && data.songs.results) {
+                    const artistName = data.name || 'Unknown Artist';
+                    const newTracks = data.songs.results.map(t => ({
+                        id: t.videoId || t.id,
+                        title: t.title,
+                        artist: artistName,
+                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : (data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '')
+                    })).filter(t => t.id && !favorites.some(f => String(f.id) === String(t.id)));
+
+                    if (newTracks.length > 0) {
+                        setFavorites(prev => [...newTracks, ...prev]);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to add artist to favorites", error);
+            }
         }
     };
 

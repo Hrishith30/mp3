@@ -37,8 +37,8 @@ const ArtistView = ({ artistId, setActiveView }) => {
     };
 
     const handlePlayTopSongs = () => {
-        if (artistData && artistData.songs && artistData.songs.length > 0) {
-            const tracks = artistData.songs.map(t => ({
+        if (artistData && artistData.songs?.results && artistData.songs.results.length > 0) {
+            const tracks = artistData.songs.results.map(t => ({
                 videoId: t.videoId || t.id,
                 title: t.title,
                 artist: artistData.name,
@@ -49,7 +49,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
     };
 
     const handlePlayTrack = (track, index) => {
-        const tracks = artistData.songs.map(t => ({
+        const tracks = artistData.songs.results.map(t => ({
             videoId: t.videoId || t.id,
             title: t.title,
             artist: artistData.name,
@@ -117,14 +117,14 @@ const ArtistView = ({ artistId, setActiveView }) => {
             </div>
 
             {/* Top Songs */}
-            {artistData.songs && artistData.songs.length > 0 && (
+            {artistData.songs?.results && artistData.songs.results.length > 0 && (
                 <div className="mb-12">
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                         <MusicalNoteIcon className="w-6 h-6 text-blue-400" />
                         Top Songs
                     </h2>
                     <div className="bg-black/20 rounded-3xl p-2 md:p-4 backdrop-blur-sm border border-white/5 space-y-1">
-                        {artistData.songs.slice(0, 5).map((track, index) => (
+                        {artistData.songs.results.slice(0, 5).map((track, index) => (
                             <div
                                 key={track.videoId || index}
                                 onClick={() => handlePlayTrack(track, index)}
@@ -175,14 +175,14 @@ const ArtistView = ({ artistId, setActiveView }) => {
             )}
 
             {/* Albums */}
-            {artistData.albums && artistData.albums.length > 0 && (
+            {artistData.albums?.results && artistData.albums.results.length > 0 && (
                 <div>
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                         <RectangleStackIcon className="w-6 h-6 text-blue-400" />
                         Albums
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                        {artistData.albums.map((album) => (
+                        {artistData.albums.results.map((album) => (
                             <div
                                 key={album.browseId}
                                 onClick={() => setActiveView('album', album.browseId, 'album')}
