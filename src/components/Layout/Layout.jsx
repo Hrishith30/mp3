@@ -16,6 +16,18 @@ const Layout = ({ activeView, setActiveView, children }) => {
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-w-0 relative h-full overflow-y-auto custom-scrollbar bg-black z-0">
+                    {/* Mobile Header */}
+                    <div className="md:hidden flex items-center justify-between p-4 bg-black/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveView('home')}>
+                            <div className="relative w-8 h-8 flex items-center justify-center">
+                                <img src="./music.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                            </div>
+                            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 tracking-widest drop-shadow-sm">
+                                MUZE
+                            </h1>
+                        </div>
+                    </div>
+
                     {children}
 
                     {/* Mobile Navigation Spacer */}
