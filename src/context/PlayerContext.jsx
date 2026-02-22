@@ -372,13 +372,18 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Controls ---
     const playTrack = (track, resetQueue = true) => {
+        const videoId = track.videoId || track.id; // Safely get videoId
+        if (!videoId) return;
+
         setCurrentTime(0);
         setDuration(100);
-        setCurrentTrack(track);
+        setCurrentTrack({ ...track, videoId }); // Ensure the current track has videoId explicitly set
+
         if (resetQueue) {
             setQueue([track]);
             setCurrentIndex(0);
         }
+
         userIntentPaused.current = false;
         addToHistory(track);
         updateMediaSession(track);
@@ -387,16 +392,25 @@ export const PlayerProvider = ({ children }) => {
         if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
 
         if (playerRef.current && isPlayerReady.current) {
-            playerRef.current.loadVideoById(track.videoId);
+            playerRef.current.loadVideoById(videoId);
             playerRef.current.playVideo();
         }
     };
 
     const playAlbum = (tracks, startIndex = 0) => {
         if (!tracks || tracks.length === 0) return;
-        setQueue(tracks);
+
+        // Ensure all tracks in the album/playlist have videoId explicitly set
+        const safeTracks = tracks.map(t => ({
+            ...t,
+            videoId: t.videoId || t.id,
+            id: t.id || t.videoId
+        }));
+
+        setQueue(safeTracks);
         setCurrentIndex(startIndex);
-        playTrack(tracks[startIndex], false);
+        // Pass false so playTrack doesn't overwrite the queue we just set
+        playTrack(safeTracks[startIndex], false);
     };
 
     const toggleShuffle = () => setIsShuffle(prev => !prev);
@@ -439,71 +453,109 @@ export const PlayerProvider = ({ children }) => {
                             const userLangRaw = localStorage.getItem('userLanguage') || '';
                             const userLang = userLangRaw.split(',')[0].trim();
 
-                            // 1. Detect if CURRENT song is Devotional
-                            const devotionalKeywords = [
-                                'God', 'Jesus', 'Hanuman', 'Ram', 'Krishna', 'Worship', 'Bhakti', 'Aarti', 'Devotional',
-                                'Mantra', 'Stotram', 'Sahasranam', 'Gospel', 'Praise', 'Murugan', 'Shiva', 'Ganesh',
-                                'Durga', 'Amma', 'Om ', 'Namah', 'Chalisa', 'Bhajan', 'Keerthana', 'Sloka', 'Suprabhatam'
-                            ];
-                            const isDevotional = (text) => devotionalKeywords.some(k => text.toLowerCase().includes(k.toLowerCase()));
-                            const currentIsDevotional = isDevotional(current.title + ' ' + (current.artist || ''));
-
                             // 2. Strict Language & Industry Mapping
                             const industryMap = {
-                                'Telugu': 'Tollywood',
-                                'Hindi': 'Bollywood',
-                                'Tamil': 'Kollywood',
-                                'Malayalam': 'Mollywood',
-                                'Kannada': 'Sandalwood',
-                                'Punjabi': 'Pollywood'
+                                'Telugu': 'Telugu',
+                                'Hindi': 'Hindi',
+                                'Tamil': 'Tamil',
+                                'Malayalam': 'Malayalam',
+                                'Kannada': 'Kannada',
+                                'Punjabi': 'Punjabi'
                             };
                             const industry = industryMap[userLang] || userLang; // Default to language if no industry map
 
                             let searchQuery = '';
-                            if (currentIsDevotional) {
-                                // Keep the vibe: Search specifically for devotional content in user language
-                                searchQuery = `${userLang} ${current.artist} devotional songs`.trim();
-                            } else {
-                                // STRICT Non-Devotional Logic
-                                // If mapped to industry (e.g. Tollywood), use that for best results
-                                if (industryMap[userLang]) {
-                                    searchQuery = `${industry} hit songs ${current.artist} -devotional -bhakti -god -worship`.trim();
+
+                            // Start with the strict language requirement
+                            let langPrefix = industryMap[userLang] ? `${userLang} ${industry}` : userLang;
+
+                            if (current.context) {
+                                if (['2000s', '2010s', '2020s'].includes(current.context)) {
+                                    // Build era-specific query: e.g. "Telugu 2000s hit songs [Artist]"
+                                    searchQuery = `${langPrefix} ${current.context} hit songs ${current.artist}`.trim();
+                                } else if (['Trending', 'Latest'].includes(current.context)) {
+                                    // Build trending/top picks query: e.g. "Telugu Top Cinema Hits [Artist]"
+                                    searchQuery = `${langPrefix} Top Cinema Hits ${current.artist}`.trim();
                                 } else {
-                                    // Fallback for others: "[Language] [Artist] hit songs"
-                                    searchQuery = `${userLang} ${current.artist} hit songs -devotional -bhakti -god -worship`.trim();
+                                    // Fallback if context is known but not matched above
+                                    searchQuery = `${langPrefix} hit songs ${current.artist}`.trim();
                                 }
+                            } else {
+                                // Default fallback with strict language: e.g. "Telugu hit songs [Artist]"
+                                searchQuery = `${langPrefix} hit songs ${current.artist}`.trim();
                             }
 
-                            console.log("Autoplay Logic:", { currentIsDevotional, searchQuery });
+                            console.log("Autoplay Logic Initial:", { context: current.context, lang: userLang, searchQuery });
 
-                            const response = await fetch(`https://musicbackend-pkfi.vercel.app/search?query=${encodeURIComponent(searchQuery)}&filter=songs`);
-                            const data = await response.json();
+                            const fetchAndAddTracks = async (queryToTry, isFallback = false) => {
+                                const response = await fetch(`https://musicbackend-pkfi.vercel.app/search?query=${encodeURIComponent(queryToTry)}&filter=songs`);
+                                const data = await response.json();
 
-                            if (data && data.length > 0) {
-                                let newTracks = data.map(item => ({
-                                    videoId: item.videoId || item.id,
-                                    title: item.title,
-                                    artist: item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown'),
-                                    thumb: item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : ''
-                                }));
+                                if (data && data.length > 0) {
+                                    let newTracks = data.map(item => ({
+                                        videoId: item.videoId || item.id,
+                                        title: item.title,
+                                        artist: item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown'),
+                                        thumb: item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : ''
+                                    }));
 
-                                // 2. JS Side Strict Filtering (Double Safety)
-                                if (!currentIsDevotional) {
-                                    newTracks = newTracks.filter(t => !isDevotional(t.title));
+                                    // 2. JS Side Strict Language Filtering (Double Safety)
+                                    // Remove tracks that explicitly mention other languages or industries in their title/artist
+                                    const otherLangs = Object.keys(industryMap).filter(l => l.toLowerCase() !== userLang.toLowerCase());
+                                    const otherIndustries = Object.values(industryMap).filter(i => i.toLowerCase() !== industry.toLowerCase());
+                                    const forbiddenKeywords = [...otherLangs, ...otherIndustries].map(k => k.toLowerCase());
+
+                                    newTracks = newTracks.filter(t => {
+                                        const textToCheck = `${t.title} ${t.artist}`.toLowerCase();
+                                        // If a track says "Hindi Version" or "Bollywood", but user is in Telugu, drop it.
+                                        return !forbiddenKeywords.some(keyword => textToCheck.includes(keyword));
+                                    });
+
+                                    // 3. Deduplicate against the existing queue
+                                    newTracks = newTracks.filter(t => !queue.some(q => q.videoId === t.videoId));
+
+                                    if (newTracks.length > 0) {
+                                        const tracksToAdd = newTracks.slice(0, 5).map(t => ({
+                                            ...t,
+                                            context: current.context || ''
+                                        }));
+                                        setQueue(prevQueue => [...prevQueue, ...tracksToAdd]);
+                                        setCurrentIndex(queue.length);
+                                        playTrack(tracksToAdd[0], false);
+                                        return true;
+                                    }
                                 }
 
-                                // 3. Deduplicate
-                                newTracks = newTracks.filter(t => !queue.some(q => q.videoId === t.videoId));
-
-                                if (newTracks.length > 0) {
-                                    const tracksToAdd = newTracks.slice(0, 5);
-                                    setQueue([...queue, ...tracksToAdd]);
-                                    setCurrentIndex(queue.length);
-                                    playTrack(tracksToAdd[0], false);
-                                    return;
+                                // If we got here, we found no new tracks (all were duplicates or API returned none)
+                                if (!isFallback) {
+                                    console.log("Autoplay: Strict query exhausted, trying broader fallback...");
+                                    // Broaden the search by removing the specific artist focus, just ask for hits in the language/era
+                                    let fallbackQuery = `${langPrefix} hit songs`.trim();
+                                    if (current.context) {
+                                        if (['2000s', '2010s', '2020s'].includes(current.context)) {
+                                            fallbackQuery = `${langPrefix} ${current.context} hit songs`.trim();
+                                        } else if (['Trending', 'Latest'].includes(current.context)) {
+                                            fallbackQuery = `${langPrefix} Top Cinema Hits`.trim();
+                                        }
+                                    }
+                                    return await fetchAndAddTracks(fallbackQuery, true);
                                 }
-                            }
-                        } catch (e) { console.error("Autoplay failed", e); }
+
+                                // If even the fallback fails, just restart from index 0 to avoid a total freeze
+                                console.warn("Autoplay: Fallback exhausted too. Restarting queue.");
+                                setCurrentIndex(0);
+                                playTrack(queue[0], false);
+                                return false;
+                            };
+
+                            await fetchAndAddTracks(searchQuery);
+
+                        } catch (e) {
+                            console.error("Autoplay failed", e);
+                            // Emergency fallback: just wrap around
+                            setCurrentIndex(0);
+                            playTrack(queue[0], false);
+                        }
                     }
                     return;
                 } else return;

@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 import { LANGUAGES } from '../../constants/languages';
 
 const HomeView = ({ setActiveView }) => {
-    const { playTrack, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite, history } = usePlayer();
+    const { playAlbum, playTrack, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite, history } = usePlayer();
     const [selectedLang, setSelectedLang] = useState(localStorage.getItem('userLanguage') || 'Telugu');
     const [isLangOpen, setIsLangOpen] = useState(false);
     const [langSongs, setLangSongs] = useState([]);
@@ -17,8 +17,7 @@ const HomeView = ({ setActiveView }) => {
     const [eraContent, setEraContent] = useState({
         '2000s': [],
         '2010s': [],
-        '2020s': [],
-        'Latest': []
+        '2020s': []
     });
     const [loading, setLoading] = useState(false);
 
@@ -32,33 +31,56 @@ const HomeView = ({ setActiveView }) => {
         localStorage.setItem('userLanguage', lang);
 
         try {
-            // Fetch Songs
+            // Industry Map for strict queries
+            const industryMap = {
+                'Telugu': 'Tollywood',
+                'Hindi': 'Bollywood',
+                'Tamil': 'Kollywood',
+                'Malayalam': 'Mollywood',
+                'Kannada': 'Sandalwood',
+                'Punjabi': 'Pollywood'
+            };
+            const langPrefix = industryMap[lang] ? `${lang} ${industryMap[lang]}` : lang;
+
+            // Strict JS Sorting Filters
+            const otherLangs = Object.keys(industryMap).filter(l => l.toLowerCase() !== lang.toLowerCase());
+            const otherIndustries = Object.values(industryMap).filter(i => i.toLowerCase() !== (industryMap[lang] || '').toLowerCase());
+            const forbiddenKeywords = [...otherLangs, ...otherIndustries].map(k => k.toLowerCase());
+
+            const isStrictMatch = (item) => {
+                const artistStr = item.artists ? item.artists.map(a => a.name).join(' ') : (item.artist || '');
+                const textToCheck = `${item.title} ${artistStr}`.toLowerCase();
+                return !forbiddenKeywords.some(keyword => textToCheck.includes(keyword));
+            };
+
+            // Fetch Songs (Trending / Top Picks)
             const songPatterns = [
-                `${lang} Top Cinema Hits`, `${lang} Trending Pop Songs`, `${lang} New Movie Tracks`,
-                `${lang} 2000s Hits`, `${lang} 2010s Hits`, `${lang} 2020s Hits`, `${lang} Latest Songs`, `${lang} New Releases`
+                `${langPrefix} Top Cinema Hits`, `${langPrefix} Trending Pop Songs`, `${langPrefix} New Movie Tracks`,
+                `${langPrefix} Latest Hit Songs`, `${langPrefix} New Releases`, `${langPrefix} Blockbuster Hits`
             ];
             const songQuery = songPatterns[Math.floor(Math.random() * songPatterns.length)];
             const songRes = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(songQuery)}&filter=songs`);
-            const songData = await songRes.json();
-            setLangSongs(songData);
+            const songDataRaw = await songRes.json();
+            setLangSongs(songDataRaw.filter(isStrictMatch));
 
             // Fetch Albums
             const albumPatterns = [
-                `${lang} Latest Movie Albums`, `${lang} Best Cinema Hits`, `${lang} Top Soundtracks`,
-                `${lang} 2000s Movie Albums`, `${lang} 2010s Movie Albums`, `${lang} 2020s Movie Albums`
+                `${langPrefix} Latest Movie Albums`, `${langPrefix} Best Cinema Hits Albums`, `${langPrefix} Top Soundtracks`,
+                `${langPrefix} 2023 Movie Albums`, `${langPrefix} 2024 Movie Albums`, `${langPrefix} Blockbuster Albums`
             ];
             const albumQuery = albumPatterns[Math.floor(Math.random() * albumPatterns.length)];
             const albumRes = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(albumQuery)}&filter=albums`);
-            const albumData = await albumRes.json();
-            setLangAlbums(albumData);
+            const albumDataRaw = await albumRes.json();
+            setLangAlbums(albumDataRaw.filter(isStrictMatch));
 
             // Fetch Eras
-            const eras = ['2000s', '2010s', '2020s', 'Latest'];
+            const eras = ['2000s', '2010s', '2020s'];
             const eraPromises = eras.map(async (era) => {
-                const query = `${lang} ${era} Movie Hits`;
+                const query = `${langPrefix} ${era} Movie Hit Songs`;
                 const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&filter=songs`);
                 const data = await res.json();
-                return { era, data: data.slice(0, 10) };
+                const filteredData = data.filter(isStrictMatch);
+                return { era, data: filteredData.slice(0, 10) };
             });
 
             const eraResults = await Promise.all(eraPromises);
@@ -75,17 +97,36 @@ const HomeView = ({ setActiveView }) => {
         }
     };
 
-    const handlePlay = (item) => {
-        // If it's from history, it already has 'thumb'. Otherwise, optimize 'thumbnails'.
-        const thumb = item.thumb || getOptimizedImage(item.thumbnails, 'high');
-        const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
+    const handlePlay = (tracksInput, startIndex = 0, context = '') => {
+        if (!tracksInput) return;
 
-        playTrack({
-            videoId: item.videoId || item.id,
-            title: item.title,
-            artist: artist,
-            thumb: thumb
+        // Fallback for single track objects passed accidentally
+        const tracks = Array.isArray(tracksInput) ? tracksInput : [tracksInput];
+        if (tracks.length === 0) return;
+
+        const mappedTracks = tracks.map(item => {
+            // Keep original thumb if it's already a string, otherwise extract from thumbnails array
+            let thumb = '';
+            if (typeof item.thumb === 'string') {
+                thumb = item.thumb;
+            } else if (item.thumbnails && Array.isArray(item.thumbnails)) {
+                thumb = getOptimizedImage(item.thumbnails, 'high');
+            }
+
+            const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
+
+            return {
+                ...item, // include original data
+                videoId: item.videoId || item.id, // force standardize
+                id: item.id || item.videoId, // force standardize
+                title: item.title,
+                artist: artist,
+                thumb: thumb,
+                context: context
+            };
         });
+
+        playAlbum(mappedTracks, startIndex);
     };
 
     return (
@@ -141,8 +182,8 @@ const HomeView = ({ setActiveView }) => {
                         Recently Played
                     </h3>
                     <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
-                        {history.slice(0, 10).map((item) => (
-                            <div key={item.id} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay({ ...item, videoId: item.id })}>
+                        {history.slice(0, 10).map((item, index) => (
+                            <div key={item.id} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(history.slice(0, 10).map(h => ({ ...h, videoId: h.id })), index, 'Recently Played')}>
                                 <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                     <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
@@ -193,11 +234,11 @@ const HomeView = ({ setActiveView }) => {
                             <div key={i} className="min-w-[160px] md:min-w-0 aspect-square bg-white/5 rounded-2xl animate-pulse"></div>
                         ))
                     ) : (
-                        langSongs.slice(0, 10).map((item) => {
+                        langSongs.slice(0, 10).map((item, index) => {
                             const thumb = getOptimizedImage(item.thumbnails, 'medium');
                             const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                             return (
-                                <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(item)}>
+                                <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(langSongs.slice(0, 10), index, 'Trending')}>
                                     <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                         <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
@@ -247,11 +288,11 @@ const HomeView = ({ setActiveView }) => {
                             </h3>
                         </div>
                         <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
-                            {songs.map((item) => {
+                            {songs.map((item, index) => {
                                 const thumb = getOptimizedImage(item.thumbnails, 'medium');
                                 const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                                 return (
-                                    <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(item)}>
+                                    <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(songs, index, era)}>
                                         <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                             <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
