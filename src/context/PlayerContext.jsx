@@ -267,18 +267,26 @@ export const PlayerProvider = ({ children }) => {
         }
     };
 
+    const lastMediaPositionUpdate = useRef(0);
+
     const updateMediaSessionPosition = (state, manualTime = null, manualDuration = null) => {
         if (!('mediaSession' in navigator)) return;
         try {
             navigator.mediaSession.playbackState = state;
             const pos = manualTime !== null ? manualTime : currentTime;
             const dur = manualDuration !== null ? manualDuration : duration;
+
+            // Limit position updates to once per second to prevent iOS progress bar freezing
+            const now = Date.now();
             if ('setPositionState' in navigator.mediaSession && dur > 0 && isFinite(pos) && isFinite(dur)) {
-                navigator.mediaSession.setPositionState({
-                    duration: Math.max(dur, 0.01),
-                    playbackRate: 1.0,
-                    position: Math.min(Math.max(pos, 0), dur)
-                });
+                if (now - lastMediaPositionUpdate.current >= 1000 || state !== 'playing') {
+                    navigator.mediaSession.setPositionState({
+                        duration: Math.max(dur, 0.01),
+                        playbackRate: 1.0,
+                        position: Math.min(Math.max(pos, 0), dur)
+                    });
+                    lastMediaPositionUpdate.current = now;
+                }
             }
         } catch (e) { }
     };
