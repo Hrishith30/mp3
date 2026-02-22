@@ -639,7 +639,6 @@ export const PlayerProvider = ({ children }) => {
             // Force steal media session lock back from iframe by reactivating parent's silent audio
             setTimeout(() => {
                 if (silentAudioRef.current) {
-                    silentAudioRef.current.pause();
                     silentAudioRef.current.currentTime = 0;
                     silentAudioRef.current.play().catch(() => { });
                 }
