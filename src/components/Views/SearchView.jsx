@@ -6,11 +6,22 @@ import { PlayCircleIcon as PlayCircleIconSolid, HeartIcon } from '@heroicons/rea
 const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 
 const SearchView = ({ setActiveView }) => {
-    const { playTrack, addToFavorites, removeFromFavorites, isFavorite } = usePlayer();
+    const {
+        playTrack, addToFavorites, removeFromFavorites, isFavorite,
+        isAlbumFavorite, isArtistFavorite, toggleAlbumFavorites, toggleArtistFavorite
+    } = usePlayer();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [activeFilter, setActiveFilter] = useState('songs');
+
+    const filters = [
+        { id: 'songs', label: 'Songs' },
+        { id: 'albums', label: 'Albums' },
+        { id: 'artists', label: 'Artists' },
+        { id: 'playlists', label: 'Playlists' }
+    ];
 
     // Debounce
     useEffect(() => {
@@ -32,8 +43,7 @@ const SearchView = ({ setActiveView }) => {
     const performSearch = async (searchTerm) => {
         setLoading(true);
         try {
-            // Defaulting to songs filter for now to ensure we get playable tracks
-            const response = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}&filter=songs`);
+            const response = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}&filter=${activeFilter}`);
             const data = await response.json();
             setResults(data);
         } catch (error) {
@@ -43,7 +53,26 @@ const SearchView = ({ setActiveView }) => {
         }
     };
 
-    const handlePlay = (item) => {
+    // Re-fetch when filter changes
+    useEffect(() => {
+        if (debouncedQuery.trim()) {
+            performSearch(debouncedQuery);
+        }
+    }, [activeFilter]);
+
+    const handlePlay = async (item) => {
+        const id = item.browseId || item.id || item.videoId;
+
+        if (activeFilter === 'albums' || activeFilter === 'playlists') {
+            setActiveView('album', id, activeFilter === 'playlists' ? 'playlist' : 'album');
+            return;
+        }
+
+        if (activeFilter === 'artists') {
+            setActiveView('artist', id);
+            return;
+        }
+
         const thumb = item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : '';
         const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
 
@@ -68,6 +97,22 @@ const SearchView = ({ setActiveView }) => {
                         autoFocus
                     />
                     <MagnifyingGlassIcon className="absolute left-4.5 md:left-5 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                </div>
+
+                {/* Filters */}
+                <div className="flex gap-2.5 mt-4 overflow-x-auto pb-2 scrollbar-hide max-w-2xl mx-auto px-1 md:px-0">
+                    {filters.map(filter => (
+                        <button
+                            key={filter.id}
+                            onClick={() => setActiveFilter(filter.id)}
+                            className={`px-5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${activeFilter === filter.id
+                                ? 'bg-blue-500 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                                }`}
+                        >
+                            {filter.label}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -103,31 +148,41 @@ const SearchView = ({ setActiveView }) => {
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                     <PlayCircleIconSolid className="w-12 h-12 text-white drop-shadow-lg" />
                                 </div>
-                                <button
-                                    className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (isFavorite(item.videoId)) {
-                                            removeFromFavorites(item.videoId);
-                                        } else {
-                                            addToFavorites({
-                                                videoId: item.videoId,
-                                                title: item.title,
-                                                artist: artist,
-                                                thumb: thumb
-                                            });
-                                        }
-                                    }}
-                                >
-                                    {isFavorite(item.videoId) ? (
-                                        <HeartIcon className="w-5 h-5 text-blue-400" />
-                                    ) : (
-                                        <HeartIconOutline className="w-5 h-5" />
-                                    )}
-                                </button>
+                                {(() => {
+                                    const id = item.videoId || item.id || item.browseId;
+                                    let isLiked = false;
+                                    if (activeFilter === 'songs') isLiked = isFavorite(id);
+                                    else if (activeFilter === 'artists') isLiked = isArtistFavorite(id);
+                                    else isLiked = isAlbumFavorite(id);
+
+                                    return (
+                                        <button
+                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (activeFilter === 'songs') {
+                                                    if (isLiked) removeFromFavorites(id);
+                                                    else addToFavorites({ videoId: id, title: item.title, artist: artist, thumb: thumb });
+                                                } else if (activeFilter === 'artists') {
+                                                    toggleArtistFavorite(id);
+                                                } else {
+                                                    toggleAlbumFavorites(id, activeFilter === 'playlists' ? 'playlist' : 'album');
+                                                }
+                                            }}
+                                        >
+                                            {isLiked ? (
+                                                <HeartIcon className="w-5 h-5 text-blue-400" />
+                                            ) : (
+                                                <HeartIconOutline className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    );
+                                })()}
                             </div>
-                            <h4 className="text-white font-medium truncate text-sm">{item.title}</h4>
-                            <p className="text-gray-400 text-xs truncate">{artist}</p>
+                            <h4 className="text-white font-medium truncate text-sm">{item.title || item.name}</h4>
+                            <p className="text-gray-400 text-xs truncate">
+                                {activeFilter === 'artists' ? 'Artist' : artist}
+                            </p>
                         </div>
                     );
                 })}

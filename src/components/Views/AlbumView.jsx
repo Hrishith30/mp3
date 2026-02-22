@@ -9,7 +9,7 @@ import { getOptimizedImage } from '../../utils/imageUtils';
 
 const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 
-const AlbumView = ({ albumId, setActiveView }) => {
+const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
     const { playTrack, addToQueue, playAlbum, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite } = usePlayer();
     const [albumData, setAlbumData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -18,17 +18,18 @@ const AlbumView = ({ albumId, setActiveView }) => {
         if (albumId) {
             fetchAlbumDetails(albumId);
         }
-    }, [albumId]);
+    }, [albumId, type]);
 
     const fetchAlbumDetails = async (id) => {
         setLoading(true);
         try {
-            // Correct Endpoint based on script.js
-            const response = await fetch(`${API_BASE_URL}/album/${id}`);
+            // Correct Endpoint based on type
+            const endpoint = type === 'playlist' ? 'playlist' : 'album';
+            const response = await fetch(`${API_BASE_URL}/${endpoint}/${id}`);
             const data = await response.json();
             setAlbumData(data);
         } catch (error) {
-            console.error("Failed to load album", error);
+            console.error(`Failed to load ${type}`, error);
             // Fallback for demo if API fails
             setAlbumData({
                 title: "Loading Error",
@@ -91,11 +92,11 @@ const AlbumView = ({ albumId, setActiveView }) => {
     };
 
     if (loading) {
-        return <div className="p-12 text-center text-white">Loading Album...</div>;
+        return <div className="p-12 text-center text-white">Loading {type === 'playlist' ? 'Playlist' : 'Album'}...</div>;
     }
 
     if (!albumData) {
-        return <div className="p-12 text-center text-white">Album not found.</div>;
+        return <div className="p-12 text-center text-white">{type === 'playlist' ? 'Playlist' : 'Album'} not found.</div>;
     }
 
     return (
@@ -119,7 +120,9 @@ const AlbumView = ({ albumId, setActiveView }) => {
                     />
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                    <h5 className="text-blue-400 font-bold tracking-widest mb-2 uppercase text-[10px] md:text-xs">Album</h5>
+                    <h5 className="text-blue-400 font-bold tracking-widest mb-2 uppercase text-[10px] md:text-xs">
+                        {type === 'playlist' ? 'Playlist' : 'Album'}
+                    </h5>
                     <h1 className="text-3xl md:text-6xl font-black text-white mb-4 leading-tight tracking-tight">{albumData.title}</h1>
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-gray-400 text-xs md:text-sm mb-6 font-medium">
@@ -149,10 +152,10 @@ const AlbumView = ({ albumId, setActiveView }) => {
                             className="bg-blue-500 text-black px-8 py-3.5 rounded-full font-bold text-lg hover:scale-105 hover:bg-blue-400 transition-all shadow-blue-500/30 flex items-center gap-2"
                         >
                             <PlayCircleIcon className="w-6 h-6" />
-                            Play Album
+                            Play {type === 'playlist' ? 'Playlist' : 'Album'}
                         </button>
                         <button
-                            onClick={() => toggleAlbumFavorites(albumId)}
+                            onClick={() => toggleAlbumFavorites(albumId, type)}
                             className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
                             title={isAlbumFavorite(albumId) ? "Remove from Favorites" : "Add to Favorites"}
                         >

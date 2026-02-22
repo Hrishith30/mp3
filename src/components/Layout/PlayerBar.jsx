@@ -42,7 +42,14 @@ const PlayerBar = () => {
     const calculatePercent = (e, ref) => {
         if (!ref.current) return 0;
         const rect = ref.current.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientX;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+        } else {
+            clientX = e.clientX;
+        }
         return Math.min(Math.max(0, clientX - rect.left), rect.width) / rect.width;
     };
 

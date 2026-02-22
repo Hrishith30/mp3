@@ -309,18 +309,34 @@ export const PlayerProvider = ({ children }) => {
 
     // --- History & Favorites ---
     const [history, setHistory] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('musicHistory')) || []; } catch { return []; }
+        try {
+            const saved = JSON.parse(localStorage.getItem('musicHistory')) || [];
+            return saved.filter(item => item && (item.id || item.videoId));
+        } catch { return []; }
     });
     const [favorites, setFavorites] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('musicFavorites')) || []; } catch { return []; }
+        try {
+            const saved = JSON.parse(localStorage.getItem('musicFavorites')) || [];
+            return saved.filter(item => item && (item.id || item.videoId));
+        } catch { return []; }
     });
     const [favoriteAlbums, setFavoriteAlbums] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicFavoriteAlbums')) || []; } catch { return []; }
     });
+    const [favoriteArtists, setFavoriteArtists] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('musicFavoriteArtists')) || []; } catch { return []; }
+    });
 
-    useEffect(() => { localStorage.setItem('musicFavorites', JSON.stringify(favorites)); }, [favorites]);
+    useEffect(() => {
+        const validFavorites = favorites.filter(item => item && item.id);
+        localStorage.setItem('musicFavorites', JSON.stringify(validFavorites));
+    }, [favorites]);
     useEffect(() => { localStorage.setItem('musicFavoriteAlbums', JSON.stringify(favoriteAlbums)); }, [favoriteAlbums]);
-    useEffect(() => { localStorage.setItem('musicHistory', JSON.stringify(history)); }, [history]);
+    useEffect(() => { localStorage.setItem('musicFavoriteArtists', JSON.stringify(favoriteArtists)); }, [favoriteArtists]);
+    useEffect(() => {
+        const validHistory = history.filter(item => item && item.id);
+        localStorage.setItem('musicHistory', JSON.stringify(validHistory));
+    }, [history]);
 
     const addToHistory = (track) => {
         setHistory(prev => {
@@ -344,49 +360,53 @@ export const PlayerProvider = ({ children }) => {
     const isFavorite = (videoId) => favorites.some(item => item.id === videoId);
 
     const isAlbumFavorite = (albumId) => favoriteAlbums.some(id => String(id) === String(albumId));
+    const isArtistFavorite = (artistId) => favoriteArtists.some(id => String(id) === String(artistId));
 
-    const toggleAlbumFavorites = async (albumId) => {
+    const toggleAlbumFavorites = async (albumId, type = 'album') => {
         const idStr = String(albumId);
         const isLiked = favoriteAlbums.some(id => String(id) === idStr);
+        const endpoint = type === 'playlist' ? 'playlist' : 'album';
+
         if (isLiked) {
             setFavoriteAlbums(prev => prev.filter(id => String(id) !== idStr));
             try {
-                const response = await fetch(`https://musicbackend-pkfi.vercel.app/album/${idStr}`);
+                const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
                 if (data && data.tracks) {
                     const trackIdsToRemove = data.tracks.map(t => t.videoId || t.id);
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(item.id)));
                 }
-            } catch (e) { console.error("Failed to remove album tracks", e); }
+            } catch (e) { console.error(`Failed to remove ${type} tracks`, e); }
         } else {
             setFavoriteAlbums(prev => [idStr, ...prev]);
             try {
-                const response = await fetch(`https://musicbackend-pkfi.vercel.app/album/${idStr}`);
+                const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
                 if (data && data.tracks) {
-                    const albumArt = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '';
+                    const albumArt = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : (data.thumb || '');
                     const albumArtist = data.artists ? data.artists.map(a => a.name).join(', ') : (data.artist || 'Unknown');
-                    let newTracks = [];
-                    data.tracks.forEach(track => {
-                        const trackId = track.videoId || track.id;
-                        if (!trackId) return;
-                        if (!favorites.some(item => String(item.id) === String(trackId))) {
-                            newTracks.push({
-                                id: trackId,
-                                title: track.title,
-                                artist: track.artists ? track.artists.map(a => a.name).join(', ') : albumArtist,
-                                thumb: track.thumbnails ? track.thumbnails[track.thumbnails.length - 1].url : albumArt
-                            });
-                        }
-                    });
+
+                    const newTracks = data.tracks.map(t => ({
+                        id: t.videoId || t.id,
+                        title: t.title,
+                        artist: t.artist || albumArtist,
+                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : albumArt
+                    })).filter(t => t.id && !favorites.some(f => String(f.id) === String(t.id)));
+
                     if (newTracks.length > 0) {
-                        setFavorites(prev => {
-                            const uniqueNew = newTracks.filter(n => !prev.some(p => String(p.id) === String(n.id)));
-                            return [...uniqueNew, ...prev];
-                        });
+                        setFavorites(prev => [...newTracks, ...prev]);
                     }
                 }
-            } catch (error) { console.error("Failed to add album to favorites", error); }
+            } catch (error) { console.error(`Failed to add ${type} to favorites`, error); }
+        }
+    };
+
+    const toggleArtistFavorite = (artistId) => {
+        const idStr = String(artistId);
+        if (isArtistFavorite(idStr)) {
+            setFavoriteArtists(prev => prev.filter(id => String(id) !== idStr));
+        } else {
+            setFavoriteArtists(prev => [idStr, ...prev]);
         }
     };
 
@@ -784,8 +804,11 @@ export const PlayerProvider = ({ children }) => {
         isFavorite,
         isAlbumFavorite,
         toggleAlbumFavorites,
+        isArtistFavorite,
+        toggleArtistFavorite,
         favorites,
         favoriteAlbums,
+        favoriteArtists,
         history
     };
 

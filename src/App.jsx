@@ -5,16 +5,24 @@ import HomeView from './components/Views/HomeView'
 import SearchView from './components/Views/SearchView'
 import LibraryView from './components/Views/LibraryView'
 import AlbumView from './components/Views/AlbumView'
+import ArtistView from './components/Views/ArtistView'
 import { LANGUAGES } from './constants/languages'
 
 function App() {
   const [activeView, setActiveView] = useState('home');
   const [selectedAlbumId, setSelectedAlbumId] = useState(null);
+  const [selectedAlbumType, setSelectedAlbumType] = useState('album');
+  const [selectedArtistId, setSelectedArtistId] = useState(null);
   const [showLangModal, setShowLangModal] = useState(!localStorage.getItem('userLanguage'));
 
-  const handleViewChange = (view, albumId = null) => {
+  const handleViewChange = (view, id = null, type = 'album') => {
     setActiveView(view);
-    if (albumId) setSelectedAlbumId(albumId);
+    if (view === 'album') {
+      setSelectedAlbumId(id);
+      setSelectedAlbumType(type);
+    } else if (view === 'artist') {
+      setSelectedArtistId(id);
+    }
   };
 
   const handleLangSelect = (lang) => {
@@ -33,7 +41,8 @@ function App() {
       case 'home': return <HomeView setActiveView={handleViewChange} />;
       case 'search': return <SearchView setActiveView={handleViewChange} />;
       case 'library': return <LibraryView />;
-      case 'album': return <AlbumView albumId={selectedAlbumId} setActiveView={handleViewChange} />;
+      case 'album': return <AlbumView albumId={selectedAlbumId} type={selectedAlbumType} setActiveView={handleViewChange} />;
+      case 'artist': return <ArtistView artistId={selectedArtistId} setActiveView={handleViewChange} />;
       default: return <HomeView setActiveView={handleViewChange} />;
     }
   };
