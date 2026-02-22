@@ -66,6 +66,11 @@ export const PlayerProvider = ({ children }) => {
     const isPlayerReady = useRef(false);
     const userIntentPaused = useRef(false);
     const silentAudioRef = useRef(null);
+    const currentTrackRef = useRef(currentTrack);
+
+    useEffect(() => {
+        currentTrackRef.current = currentTrack;
+    }, [currentTrack]);
 
     const stateRef = useRef({
         queue: [],
@@ -622,6 +627,22 @@ export const PlayerProvider = ({ children }) => {
             // The trap handles any future YouTube calls automatically
             registerMediaSessionHandlers();
             if (silentAudioRef.current) silentAudioRef.current.play().catch(() => { });
+
+            // Force steal media session lock back from iframe by reactivating parent's silent audio
+            setTimeout(() => {
+                if (silentAudioRef.current) {
+                    silentAudioRef.current.pause();
+                    silentAudioRef.current.currentTime = 0;
+                    silentAudioRef.current.play().catch(() => { });
+                }
+                if (currentTrackRef.current) {
+                    updateMediaSession(currentTrackRef.current);
+                }
+                registerMediaSessionHandlers();
+                if (playerRef.current) {
+                    updateMediaSessionPosition('playing', playerRef.current.getCurrentTime(), playerRef.current.getDuration());
+                }
+            }, 300);
         } else if (state === YT.PlayerState.PAUSED) {
             setIsPlaying(false);
             updateMediaSessionPosition('paused');
