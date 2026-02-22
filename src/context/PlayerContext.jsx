@@ -232,26 +232,22 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Progress Loop ---
     useEffect(() => {
-        let animationFrameId;
-        const updateProgress = () => {
-            if (playerRef.current && isPlayerReady.current && isPlaying) {
-                const current = playerRef.current.getCurrentTime();
-                const total = playerRef.current.getDuration();
-                setCurrentTime(current);
-                setDuration(total);
-                updateMediaSessionPosition('playing', current, total);
-            }
-            animationFrameId = requestAnimationFrame(updateProgress);
-        };
-
+        let interval;
         if (isPlaying) {
-            animationFrameId = requestAnimationFrame(updateProgress);
+            // 200ms is fast enough to look smooth without causing React render bottlenecks
+            interval = setInterval(() => {
+                if (playerRef.current && isPlayerReady.current) {
+                    const current = playerRef.current.getCurrentTime();
+                    const total = playerRef.current.getDuration();
+                    // Optional: only update if changed significantly to save renders
+                    setCurrentTime(current);
+                    if (total > 0) setDuration(total);
+                    updateMediaSessionPosition('playing', current, total);
+                }
+            }, 200);
         }
-
         return () => {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-            }
+            if (interval) clearInterval(interval);
         };
     }, [isPlaying]);
 
