@@ -232,7 +232,8 @@ export const PlayerProvider = ({ children }) => {
 
     // --- Progress Loop ---
     useEffect(() => {
-        const interval = setInterval(() => {
+        let animationFrameId;
+        const updateProgress = () => {
             if (playerRef.current && isPlayerReady.current && isPlaying) {
                 const current = playerRef.current.getCurrentTime();
                 const total = playerRef.current.getDuration();
@@ -240,8 +241,18 @@ export const PlayerProvider = ({ children }) => {
                 setDuration(total);
                 updateMediaSessionPosition('playing', current, total);
             }
-        }, 500);
-        return () => clearInterval(interval);
+            animationFrameId = requestAnimationFrame(updateProgress);
+        };
+
+        if (isPlaying) {
+            animationFrameId = requestAnimationFrame(updateProgress);
+        }
+
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
     }, [isPlaying]);
 
     // --- Media Session Metadata ---

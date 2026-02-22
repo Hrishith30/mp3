@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
-import { PlayCircleIcon, HeartIcon } from '@heroicons/react/24/solid';
+import { PlayCircleIcon, HeartIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartIconOutline } from '@heroicons/react/24/outline';
 
 const LibraryView = () => {
@@ -34,7 +34,7 @@ const LibraryView = () => {
                 Your Library
             </h2>
 
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8">
                 <button
                     onClick={() => {
                         const playlist = favorites.map(item => ({
@@ -46,10 +46,10 @@ const LibraryView = () => {
                         playAlbum(playlist, 0);
                         if (isShuffle) toggleShuffle(); // Disable shuffle if playing linearly
                     }}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-full font-bold transition-all shadow-lg hover:scale-105"
+                    className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-full font-bold transition-all shadow-lg hover:scale-105"
                 >
-                    <PlayCircleIcon className="w-6 h-6" />
-                    Play All
+                    <PlayCircleIcon className="w-6 h-6 shrink-0" />
+                    <span className="truncate">Play All</span>
                 </button>
                 <button
                     onClick={() => {
@@ -62,13 +62,16 @@ const LibraryView = () => {
                         playAlbum(playlist, Math.floor(Math.random() * playlist.length));
                         if (!isShuffle) toggleShuffle(); // Enable shuffle
                     }}
-                    className="flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold transition-all border border-white/10 backdrop-blur-md"
+                    className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold transition-all border border-white/10 backdrop-blur-md"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 3.7 3.7 0 00-1.74 3.7c.074 1.293.138 2.6.138 3.962 0 1.362-.064 2.67-.138 3.962a4.006 4.006 0 003.7 3.7 3.7 3.7 0 001.74-3.7c-.092-1.209-.138-2.43-.138-3.662zM9 4.5l6.75 6.75M9 19.5l6.75-6.75M4.5 4.5h.008v.008H4.5V4.5zm0 6h.008v.008H4.5V10.5zm0 6h.008v.008H4.5V16.5z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 shrink-0">
+                        <polyline points="16 3 21 3 21 8"></polyline>
+                        <line x1="4" y1="20" x2="21" y2="3"></line>
+                        <polyline points="21 16 21 21 16 21"></polyline>
+                        <line x1="15" y1="15" x2="21" y2="21"></line>
+                        <line x1="4" y1="4" x2="9" y2="9"></line>
                     </svg>
-                    Shuffle
+                    <span className="truncate">Shuffle</span>
                 </button>
             </div>
 
