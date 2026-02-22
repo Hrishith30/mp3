@@ -62,10 +62,12 @@ const PlayerBar = () => {
     useEffect(() => {
         const handleMove = (e) => {
             if (isDraggingProgress && progressRef.current) {
+                if (e.cancelable) e.preventDefault();
                 const percent = calculatePercent(e, progressRef);
                 setDragProgress(percent * duration);
             }
             if (isDraggingVolume && volumeRef.current) {
+                if (e.cancelable) e.preventDefault();
                 const percent = calculatePercent(e, volumeRef);
                 setDragVolume(percent);
                 adjustVolume(percent);
@@ -88,7 +90,7 @@ const PlayerBar = () => {
         if (isDraggingProgress || isDraggingVolume) {
             window.addEventListener('mousemove', handleMove);
             window.addEventListener('mouseup', handleUp);
-            window.addEventListener('touchmove', handleMove);
+            window.addEventListener('touchmove', handleMove, { passive: false });
             window.addEventListener('touchend', handleUp);
         }
 
@@ -118,7 +120,7 @@ const PlayerBar = () => {
                         onTouchStart={handleSeekStart}
                     >
                         <div
-                            className="h-full bg-blue-500 rounded-full relative pointer-events-none transition-[width] duration-300 ease-linear shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                            className={`h-full bg-blue-500 rounded-full relative pointer-events-none ${isDraggingProgress ? '' : 'transition-[width] duration-300 ease-linear'} shadow-[0_0_12px_rgba(59,130,246,0.6)]`}
                             style={{ width: `${progressPercent}%` }}
                         >
                             <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-xl opacity-100 ${isDraggingProgress ? 'scale-125' : ''} transition-all`} />
