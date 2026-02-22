@@ -118,7 +118,7 @@ const PlayerBar = () => {
                         onTouchStart={handleSeekStart}
                     >
                         <div
-                            className="h-full bg-blue-500 rounded-full relative pointer-events-none transition-[width] duration-500 ease-linear shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                            className="h-full bg-blue-500 rounded-full relative pointer-events-none shadow-[0_0_12px_rgba(59,130,246,0.6)]"
                             style={{ width: `${progressPercent}%` }}
                         >
                             <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-xl ${isDraggingProgress ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'} transition-all`} />
