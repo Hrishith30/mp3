@@ -12,7 +12,7 @@ const Sidebar = ({ activeView, setActiveView }) => {
     return (
         <aside className="w-64 bg-white/5 backdrop-blur-[20px] border-r border-white/5 shadow-2xl hidden md:flex flex-col p-6 z-10 shrink-0 h-full overflow-y-auto custom-scrollbar">
             <div className="flex items-center gap-3 mb-10 px-2 group cursor-pointer" onClick={() => setActiveView('home')}>
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden shadow-lg shadow-blue-500/20">
+                <div className="relative w-10 h-10 flex items-center justify-center">
                     <img src="./music.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                 </div>
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600 tracking-widest drop-shadow-sm">

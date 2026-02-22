@@ -138,11 +138,11 @@ const PlayerBar = () => {
 
                 {/* 2. Track Info - Top on Mobile (Order 1), Left on Desktop (Order 2) */}
                 <div className="flex items-center gap-4 w-full md:w-[30%] min-w-0 px-1 md:px-0 order-1 md:order-2">
-                    <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden shadow-lg shrink-0 group">
+                    <div className="relative w-12 h-12 md:w-14 md:h-14 flex items-center justify-center shrink-0 group">
                         <img
-                            src={currentTrack?.thumb || "https://placehold.co/150x150/333/333"}
+                            src={currentTrack?.thumb || "./music.png"}
                             alt="Art"
-                            className={`w-full h-full object-cover ${!currentTrack ? 'opacity-50' : ''}`}
+                            className={`w-full h-full object-contain ${!currentTrack ? 'opacity-50' : 'rounded-xl overflow-hidden shadow-lg object-cover'}`}
                             referrerPolicy="no-referrer"
                         />
                     </div>
