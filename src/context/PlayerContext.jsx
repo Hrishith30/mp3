@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { nanoid } from "nanoid";
 const PlayerContext = createContext();
 
 export const usePlayer = () => useContext(PlayerContext);
@@ -34,6 +36,25 @@ const installMediaSessionTrap = () => {
 installMediaSessionTrap();
 
 export const PlayerProvider = ({ children }) => {
+    // --- Sync ID logic ---
+    const [syncId, setSyncId] = useState(() => {
+        let storedId = localStorage.getItem('musicPlayer_syncId');
+        if (!storedId) {
+            storedId = `sync-${nanoid(8)}`;
+            localStorage.setItem('musicPlayer_syncId', storedId);
+        }
+        return storedId;
+    });
+
+    const setDeviceSyncId = (newSyncId) => {
+        setSyncId(newSyncId);
+        localStorage.setItem('musicPlayer_syncId', newSyncId);
+    };
+
+    // Replace regular state loading with state pulled from convex, with local fallback
+    const remoteState = useQuery(api.sync.getUserState, { syncId });
+    const pushState = useMutation(api.sync.updateUserState);
+
     // --- Persistence: Load Initial State ---
     const [currentTrack, setCurrentTrack] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicPlayer_currentTrack')) || null; } catch { return null; }
@@ -337,6 +358,98 @@ export const PlayerProvider = ({ children }) => {
         const validHistory = history.filter(item => item && item.id);
         localStorage.setItem('musicHistory', JSON.stringify(validHistory));
     }, [history]);
+
+    // --- Convex Realtime Syncing logic ---
+
+    // Ref to track if our update was remote to prevent infinite echo loops
+    const lastRemoteUpdateRef = useRef(0);
+    const isPushingStateRef = useRef(false);
+
+    // Apply remote state when it changes
+    useEffect(() => {
+        if (!remoteState) return;
+
+        // If the state was updated remotely just recently, ignore it to avoid echo
+        if (Date.now() - remoteState.lastUpdated < 1000 && isPushingStateRef.current) {
+            return;
+        }
+
+        lastRemoteUpdateRef.current = remoteState.lastUpdated;
+
+        if (remoteState.currentTrack && JSON.stringify(remoteState.currentTrack) !== JSON.stringify(currentTrack)) {
+            setCurrentTrack(remoteState.currentTrack);
+            // When receiving a remote track change, we should load it.
+            if (playerRef.current && isPlayerReady.current) {
+                const videoId = remoteState.currentTrack.videoId || remoteState.currentTrack.id;
+                if (videoId) {
+                    playerRef.current.loadVideoById(videoId);
+                    // Force the remote current time as we just loaded a new video
+                    playerRef.current.seekTo(remoteState.currentTime || 0);
+                }
+            }
+        }
+
+        if (remoteState.queue) setQueue(remoteState.queue);
+        if (remoteState.currentIndex !== undefined) setCurrentIndex(remoteState.currentIndex);
+
+        if (remoteState.volume !== undefined && remoteState.volume !== volume) {
+            setVolume(remoteState.volume);
+            if (playerRef.current) playerRef.current.setVolume(remoteState.volume * 100);
+        }
+
+        if (remoteState.isShuffle !== undefined) setIsShuffle(remoteState.isShuffle);
+        if (remoteState.repeatMode !== undefined) setRepeatMode(remoteState.repeatMode);
+
+        if (remoteState.history) setHistory(remoteState.history);
+        if (remoteState.favorites) setFavorites(remoteState.favorites);
+        if (remoteState.favoriteAlbums) setFavoriteAlbums(remoteState.favoriteAlbums);
+        if (remoteState.favoriteArtists) setFavoriteArtists(remoteState.favoriteArtists);
+
+        // Intentionally not syncing `currentTime` continuously to avoid jumpy playback, 
+        // rely on track changes to sync position, or explicit seeks (implement later if needed)
+
+    }, [remoteState]);
+
+    // Debounced function to push state
+    const pushStateToConvex = useCallback(() => {
+        // Debounce to prevent too many requests
+        if (isPushingStateRef.current) return;
+
+        isPushingStateRef.current = true;
+
+        const stateToPush = {
+            syncId,
+            currentTrack,
+            queue,
+            currentIndex,
+            volume,
+            isShuffle,
+            repeatMode,
+            history: history.slice(0, 50), // Send limited history to save space
+            favorites,
+            favoriteAlbums,
+            favoriteArtists
+        };
+
+        // Fire and forget
+        pushState(stateToPush).finally(() => {
+            setTimeout(() => {
+                isPushingStateRef.current = false;
+            }, 500); // 500ms debounce
+        });
+
+    }, [
+        syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
+        history, favorites, favoriteAlbums, favoriteArtists, pushState
+    ]);
+
+    // Triggers for push
+    useEffect(() => {
+        pushStateToConvex();
+    }, [
+        currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
+        history, favorites, favoriteAlbums, favoriteArtists, pushStateToConvex
+    ]);
 
     const addToHistory = (track) => {
         setHistory(prev => {
@@ -839,7 +952,9 @@ export const PlayerProvider = ({ children }) => {
         favorites,
         favoriteAlbums,
         favoriteArtists,
-        history
+        history,
+        syncId,
+        setDeviceSyncId
     };
 
     return (
