@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 import { LANGUAGES } from '../../constants/languages';
 
 const HomeView = ({ setActiveView }) => {
-    const { playAlbum, playTrack, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite, history } = usePlayer();
+    const { playAlbum, playTrack, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite, history, currentTrack, isPlaying } = usePlayer();
     const [selectedLang, setSelectedLang] = useState(localStorage.getItem('userLanguage') || 'Telugu');
     const [isLangOpen, setIsLangOpen] = useState(false);
     const [langSongs, setLangSongs] = useState([]);
@@ -189,8 +189,22 @@ const HomeView = ({ setActiveView }) => {
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                         <PlayCircleIcon className="w-10 h-10 text-white" />
                                     </div>
+
+                                    {/* Now Playing Indicator Overlay */}
+                                    {currentTrack && (currentTrack.videoId === item.id || currentTrack.id === item.id) && (
+                                        <div className="absolute inset-0 bg-blue-500/20 backdrop-blur-[2px] flex flex-col items-center justify-center z-10">
+                                            <div className="flex gap-1 items-end h-6 mb-2">
+                                                <div className={`w-1 bg-blue-400 rounded-full ${isPlaying ? 'animate-[bounce_0.6s_infinite]' : 'h-2'}`} />
+                                                <div className={`w-1 bg-blue-400 rounded-full ${isPlaying ? 'animate-[bounce_0.8s_infinite]' : 'h-4'}`} style={{ animationDelay: '0.1s' }} />
+                                                <div className={`w-1 bg-blue-400 rounded-full ${isPlaying ? 'animate-[bounce_1s_infinite]' : 'h-3'}`} style={{ animationDelay: '0.2s' }} />
+                                                <div className={`w-1 bg-blue-400 rounded-full ${isPlaying ? 'animate-[bounce_0.7s_infinite]' : 'h-5'}`} style={{ animationDelay: '0.3s' }} />
+                                            </div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 drop-shadow-md">Now Playing</span>
+                                        </div>
+                                    )}
+
                                     <button
-                                        className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                        className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-20"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (isFavorite(item.id)) {
