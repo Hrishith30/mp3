@@ -410,33 +410,39 @@ export const PlayerProvider = ({ children }) => {
 
     }, [remoteState]);
 
+    // Ref to track timeout for debouncing
+    const pushTimeoutRef = useRef(null);
+
     // Debounced function to push state
     const pushStateToConvex = useCallback(() => {
-        // Debounce to prevent too many requests
-        if (isPushingStateRef.current) return;
+        if (pushTimeoutRef.current) {
+            clearTimeout(pushTimeoutRef.current);
+        }
 
-        isPushingStateRef.current = true;
+        // Wait 500ms before pushing to catch rapid sequential state updates
+        pushTimeoutRef.current = setTimeout(() => {
+            isPushingStateRef.current = true;
 
-        const stateToPush = {
-            syncId,
-            currentTrack,
-            queue,
-            currentIndex,
-            volume,
-            isShuffle,
-            repeatMode,
-            history: history.slice(0, 50), // Send limited history to save space
-            favorites,
-            favoriteAlbums,
-            favoriteArtists
-        };
+            const stateToPush = {
+                syncId,
+                currentTrack,
+                queue,
+                currentIndex,
+                volume,
+                isShuffle,
+                repeatMode,
+                history: history.slice(0, 50),
+                favorites,
+                favoriteAlbums,
+                favoriteArtists
+            };
 
-        // Fire and forget
-        pushState(stateToPush).finally(() => {
-            setTimeout(() => {
-                isPushingStateRef.current = false;
-            }, 500); // 500ms debounce
-        });
+            pushState(stateToPush).finally(() => {
+                setTimeout(() => {
+                    isPushingStateRef.current = false;
+                }, 500); // 500ms safety lock against echo
+            });
+        }, 500);
 
     }, [
         syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
