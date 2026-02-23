@@ -502,8 +502,11 @@ export const PlayerProvider = ({ children }) => {
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
-                const tracks = data.tracks || (data.songs && data.songs.results);
-                if (tracks) {
+
+                // Robust track extraction
+                const tracks = data.tracks || (data.songs && data.songs.results) || data.results || (data.content && data.content.results);
+
+                if (tracks && Array.isArray(tracks)) {
                     const trackIdsToRemove = tracks.map(t => String(t.videoId || t.id));
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
@@ -513,11 +516,13 @@ export const PlayerProvider = ({ children }) => {
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
-                const tracks = data.tracks || (data.songs && data.songs.results);
 
-                console.log(`Fetched tracks for ${type}:`, tracks?.length || 0);
+                // Robust track extraction
+                const tracks = data.tracks || (data.songs && data.songs.results) || data.results || (data.content && data.content.results);
 
-                if (tracks) {
+                console.log(`Fetched ${tracks?.length || 0} tracks for ${type}: ${idStr}`);
+
+                if (tracks && Array.isArray(tracks)) {
                     const albumArt = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : (data.thumb || '');
                     const albumArtist = data.artists ? data.artists.map(a => a.name).join(', ') : (data.artist || 'Unknown');
 
@@ -535,6 +540,8 @@ export const PlayerProvider = ({ children }) => {
                             return [...trulyNew, ...prev];
                         });
                     }
+                } else {
+                    console.warn(`No tracks found in ${type} response for ID: ${idStr}`, data);
                 }
             } catch (error) { console.error(`Failed to add ${type} to favorites`, error); }
         }
@@ -542,14 +549,20 @@ export const PlayerProvider = ({ children }) => {
 
     const toggleArtistFavorite = async (artistId) => {
         const idStr = String(artistId);
+        if (!idStr || idStr === 'undefined') return;
+
         const isLiked = isArtistFavorite(idStr);
+        console.log(`Toggling artist: ${idStr}, currently liked: ${isLiked}`);
+
         if (isLiked) {
             setFavoriteArtists(prev => prev.filter(id => String(id) !== idStr));
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
                 const data = await response.json();
-                if (data && data.songs && data.songs.results) {
-                    const trackIdsToRemove = data.songs.results.map(t => String(t.videoId || t.id));
+                const tracks = data.tracks || (data.songs && data.songs.results) || data.results;
+
+                if (tracks && Array.isArray(tracks)) {
+                    const trackIdsToRemove = tracks.map(t => String(t.videoId || t.id));
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
             } catch (e) {
@@ -560,9 +573,13 @@ export const PlayerProvider = ({ children }) => {
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
                 const data = await response.json();
-                if (data && data.songs && data.songs.results) {
+                const tracks = data.tracks || (data.songs && data.songs.results) || data.results;
+
+                console.log(`Fetched ${tracks?.length || 0} tracks for artist: ${idStr}`);
+
+                if (tracks && Array.isArray(tracks)) {
                     const artistName = data.name || 'Unknown Artist';
-                    const newTracks = data.songs.results.map(t => ({
+                    const newTracks = tracks.map(t => ({
                         id: t.videoId || t.id,
                         title: t.title,
                         artist: artistName,
