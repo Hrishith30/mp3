@@ -373,8 +373,6 @@ export const PlayerProvider = ({ children }) => {
             return;
         }
 
-        lastRemoteUpdateRef.current = remoteState.lastUpdated;
-
         if (remoteState.currentTrack && JSON.stringify(remoteState.currentTrack) !== JSON.stringify(currentTrack)) {
             setCurrentTrack(remoteState.currentTrack);
             // When receiving a remote track change, we should load it.
