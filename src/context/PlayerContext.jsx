@@ -344,6 +344,9 @@ export const PlayerProvider = ({ children }) => {
     const [favoriteAlbums, setFavoriteAlbums] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicFavoriteAlbums')) || []; } catch { return []; }
     });
+    const [favoritePlaylists, setFavoritePlaylists] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('musicFavoritePlaylists')) || []; } catch { return []; }
+    });
     const [favoriteArtists, setFavoriteArtists] = useState(() => {
         try { return JSON.parse(localStorage.getItem('musicFavoriteArtists')) || []; } catch { return []; }
     });
@@ -353,6 +356,7 @@ export const PlayerProvider = ({ children }) => {
         localStorage.setItem('musicFavorites', JSON.stringify(validFavorites));
     }, [favorites]);
     useEffect(() => { localStorage.setItem('musicFavoriteAlbums', JSON.stringify(favoriteAlbums)); }, [favoriteAlbums]);
+    useEffect(() => { localStorage.setItem('musicFavoritePlaylists', JSON.stringify(favoritePlaylists)); }, [favoritePlaylists]);
     useEffect(() => { localStorage.setItem('musicFavoriteArtists', JSON.stringify(favoriteArtists)); }, [favoriteArtists]);
     useEffect(() => {
         const validHistory = history.filter(item => item && item.id);
@@ -400,6 +404,7 @@ export const PlayerProvider = ({ children }) => {
         if (remoteState.history && JSON.stringify(remoteState.history) !== JSON.stringify(history)) setHistory(remoteState.history);
         if (remoteState.favorites && JSON.stringify(remoteState.favorites) !== JSON.stringify(favorites)) setFavorites(remoteState.favorites);
         if (remoteState.favoriteAlbums && JSON.stringify(remoteState.favoriteAlbums) !== JSON.stringify(favoriteAlbums)) setFavoriteAlbums(remoteState.favoriteAlbums);
+        if (remoteState.favoritePlaylists && JSON.stringify(remoteState.favoritePlaylists) !== JSON.stringify(favoritePlaylists)) setFavoritePlaylists(remoteState.favoritePlaylists);
         if (remoteState.favoriteArtists && JSON.stringify(remoteState.favoriteArtists) !== JSON.stringify(favoriteArtists)) setFavoriteArtists(remoteState.favoriteArtists);
 
         // Intentionally not syncing `currentTime` continuously to avoid jumpy playback, 
@@ -429,6 +434,7 @@ export const PlayerProvider = ({ children }) => {
                 history: history.slice(0, 50),
                 favorites,
                 favoriteAlbums,
+                favoritePlaylists,
                 favoriteArtists
             };
 
@@ -450,7 +456,7 @@ export const PlayerProvider = ({ children }) => {
         pushStateToConvex();
     }, [
         currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
-        history, favorites, favoriteAlbums, favoriteArtists, pushStateToConvex
+        history, favorites, favoriteAlbums, favoritePlaylists, favoriteArtists, pushStateToConvex
     ]);
 
     const addToHistory = (track) => {
@@ -478,55 +484,60 @@ export const PlayerProvider = ({ children }) => {
 
     const isFavorite = (videoId) => favorites.some(item => item.id === videoId);
 
-    const isAlbumFavorite = (albumId) => favoriteAlbums.some(id => String(id) === String(albumId));
-    const isArtistFavorite = (artistId) => favoriteArtists.some(id => String(id) === String(artistId));
+    const isAlbumFavorite = (albumId) => favoriteAlbums.some(album => String(album.id) === String(albumId));
+    const isPlaylistFavorite = (playlistId) => favoritePlaylists.some(pl => String(pl.id) === String(playlistId));
+    const isArtistFavorite = (artistId) => favoriteArtists.some(artist => String(artist.id) === String(artistId));
 
-    const toggleAlbumFavorites = async (albumId, type = 'album') => {
-        const idStr = String(albumId);
-        if (!idStr || idStr === 'undefined') {
-            console.error("toggleAlbumFavorites: albumId is missing");
-            return;
-        }
+    const toggleAlbumFavorites = async (id, type = 'album') => {
+        const idStr = String(id);
+        if (!idStr || idStr === 'undefined') return;
 
-        const isLiked = favoriteAlbums.some(id => String(id) === idStr);
-        const endpoint = type === 'playlist' ? 'playlist' : 'album';
+        const isPlaylist = type === 'playlist';
+        const targetList = isPlaylist ? favoritePlaylists : favoriteAlbums;
+        const setTargetList = isPlaylist ? setFavoritePlaylists : setFavoriteAlbums;
 
-        console.log(`Toggling ${type}: ${idStr}, currently liked: ${isLiked}`);
+        const isLiked = targetList.some(item => String(item.id) === idStr);
+        const endpoint = isPlaylist ? 'playlist' : 'album';
 
         if (isLiked) {
-            setFavoriteAlbums(prev => prev.filter(id => String(id) !== idStr));
+            setTargetList(prev => prev.filter(item => String(item.id) !== idStr));
+            // Also optionally remove tracks added from this album/playlist
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
-
-                // Robust track extraction
                 const tracks = data.tracks || (data.songs && data.songs.results) || data.results || (data.content && data.content.results);
-
                 if (tracks && Array.isArray(tracks)) {
                     const trackIdsToRemove = tracks.map(t => String(t.videoId || t.id));
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
-            } catch (e) { console.error(`Failed to remove ${type} tracks`, e); }
+            } catch (e) { }
         } else {
-            setFavoriteAlbums(prev => [idStr, ...prev]);
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
 
-                // Robust track extraction
+                // Add Album/Playlist object with metadata
+                const thumb = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : (data.thumb || '');
+                const artist = data.artists ? data.artists.map(a => a.name).join(', ') : (data.artist || 'Unknown');
+
+                const newItem = {
+                    id: idStr,
+                    title: data.title || 'Unknown',
+                    artist: artist,
+                    thumb: thumb,
+                    type: type
+                };
+
+                setTargetList(prev => [newItem, ...prev]);
+
+                // Also add all tracks to favorites
                 const tracks = data.tracks || (data.songs && data.songs.results) || data.results || (data.content && data.content.results);
-
-                console.log(`Fetched ${tracks?.length || 0} tracks for ${type}: ${idStr}`);
-
                 if (tracks && Array.isArray(tracks)) {
-                    const albumArt = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : (data.thumb || '');
-                    const albumArtist = data.artists ? data.artists.map(a => a.name).join(', ') : (data.artist || 'Unknown');
-
                     const newTracks = tracks.map(t => ({
                         id: t.videoId || t.id,
                         title: t.title,
-                        artist: t.artist || albumArtist,
-                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : albumArt
+                        artist: t.artist || artist,
+                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : thumb
                     })).filter(t => t.id);
 
                     if (newTracks.length > 0) {
@@ -536,8 +547,6 @@ export const PlayerProvider = ({ children }) => {
                             return [...trulyNew, ...prev];
                         });
                     }
-                } else {
-                    console.warn(`No tracks found in ${type} response for ID: ${idStr}`, data);
                 }
             } catch (error) { console.error(`Failed to add ${type} to favorites`, error); }
         }
@@ -548,38 +557,41 @@ export const PlayerProvider = ({ children }) => {
         if (!idStr || idStr === 'undefined') return;
 
         const isLiked = isArtistFavorite(idStr);
-        console.log(`Toggling artist: ${idStr}, currently liked: ${isLiked}`);
-
         if (isLiked) {
-            setFavoriteArtists(prev => prev.filter(id => String(id) !== idStr));
+            setFavoriteArtists(prev => prev.filter(a => String(a.id) !== idStr));
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
                 const data = await response.json();
                 const tracks = data.tracks || (data.songs && data.songs.results) || data.results;
-
                 if (tracks && Array.isArray(tracks)) {
                     const trackIdsToRemove = tracks.map(t => String(t.videoId || t.id));
                     setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
-            } catch (e) {
-                console.error("Failed to remove artist tracks", e);
-            }
+            } catch (e) { }
         } else {
-            setFavoriteArtists(prev => [idStr, ...prev]);
             try {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
                 const data = await response.json();
+
+                const artistName = data.name || 'Unknown Artist';
+                const thumb = data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '';
+
+                const newArtist = {
+                    id: idStr,
+                    title: artistName,
+                    thumb: thumb,
+                    type: 'artist'
+                };
+
+                setFavoriteArtists(prev => [newArtist, ...prev]);
+
                 const tracks = data.tracks || (data.songs && data.songs.results) || data.results;
-
-                console.log(`Fetched ${tracks?.length || 0} tracks for artist: ${idStr}`);
-
                 if (tracks && Array.isArray(tracks)) {
-                    const artistName = data.name || 'Unknown Artist';
                     const newTracks = tracks.map(t => ({
                         id: t.videoId || t.id,
                         title: t.title,
                         artist: artistName,
-                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : (data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '')
+                        thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : thumb
                     })).filter(t => t.id);
 
                     if (newTracks.length > 0) {
@@ -590,9 +602,7 @@ export const PlayerProvider = ({ children }) => {
                         });
                     }
                 }
-            } catch (error) {
-                console.error("Failed to add artist to favorites", error);
-            }
+            } catch (error) { console.error("Failed to add artist to favorites", error); }
         }
     };
 

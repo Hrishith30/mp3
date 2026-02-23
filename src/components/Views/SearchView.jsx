@@ -159,8 +159,11 @@ const SearchView = ({ setActiveView }) => {
                                 {(() => {
                                     const id = itemId;
                                     let isLiked = false;
+                                    const isPlaylist = item.resultType === 'playlist' || activeFilter === 'playlists';
+
                                     if (item.resultType === 'song' || activeFilter === 'songs') isLiked = isFavorite(id);
                                     else if (isArtist) isLiked = isArtistFavorite(id);
+                                    else if (isPlaylist) isLiked = isPlaylistFavorite(id);
                                     else isLiked = isAlbumFavorite(id);
 
                                     return (
@@ -174,7 +177,7 @@ const SearchView = ({ setActiveView }) => {
                                                 } else if (isArtist) {
                                                     toggleArtistFavorite(id);
                                                 } else {
-                                                    toggleAlbumFavorites(id, (item.resultType === 'playlist' || activeFilter === 'playlists') ? 'playlist' : 'album');
+                                                    toggleAlbumFavorites(id, isPlaylist ? 'playlist' : 'album');
                                                 }
                                             }}
                                         >

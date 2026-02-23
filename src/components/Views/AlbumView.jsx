@@ -10,7 +10,7 @@ import { getOptimizedImage } from '../../utils/imageUtils';
 const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 
 const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
-    const { playTrack, addToQueue, playAlbum, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite } = usePlayer();
+    const { playTrack, addToQueue, playAlbum, addToFavorites, removeFromFavorites, isFavorite, toggleAlbumFavorites, isAlbumFavorite, isPlaylistFavorite } = usePlayer();
     const [albumData, setAlbumData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -157,9 +157,9 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
                         <button
                             onClick={() => toggleAlbumFavorites(albumId, type)}
                             className="p-3.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
-                            title={isAlbumFavorite(albumId) ? "Remove from Favorites" : "Add to Favorites"}
+                            title={(type === 'playlist' ? isPlaylistFavorite(albumId) : isAlbumFavorite(albumId)) ? "Remove from Favorites" : "Add to Favorites"}
                         >
-                            {isAlbumFavorite(albumId) ? (
+                            {(type === 'playlist' ? isPlaylistFavorite(albumId) : isAlbumFavorite(albumId)) ? (
                                 <HeartIcon className="w-6 h-6 text-blue-400" />
                             ) : (
                                 <HeartIconOutline className="w-6 h-6 hover:text-blue-400" />
