@@ -8,7 +8,8 @@ const API_BASE_URL = 'https://musicbackend-pkfi.vercel.app';
 const SearchView = ({ setActiveView }) => {
     const {
         playTrack, addToFavorites, removeFromFavorites, isFavorite,
-        isAlbumFavorite, isArtistFavorite, toggleAlbumFavorites, toggleArtistFavorite
+        isAlbumFavorite, isArtistFavorite, isPlaylistFavorite,
+        toggleAlbumFavorites, toggleArtistFavorite
     } = usePlayer();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);

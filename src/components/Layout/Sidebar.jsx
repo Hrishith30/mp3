@@ -9,7 +9,7 @@ const Sidebar = ({ activeView, setActiveView }) => {
     const navItems = [
         { id: 'home', label: 'Home', icon: HomeIcon, activeIcon: HomeIconSolid },
         { id: 'search', label: 'Search', icon: MagnifyingGlassIcon, activeIcon: MagnifyingGlassIconSolid },
-        { id: 'library', label: 'Your Library', icon: HeartIcon, activeIcon: HeartIconSolid },
+        { id: 'library', label: 'My Library', icon: HeartIcon, activeIcon: HeartIconSolid },
     ];
 
     return (

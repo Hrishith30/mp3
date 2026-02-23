@@ -15,12 +15,12 @@ const LibraryView = () => {
             <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
                 <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
                     <span className="w-1.5 h-8 bg-blue-400 rounded-full mr-4"></span>
-                    Your Library
+                    My Library
                 </h2>
 
                 <div className="p-12 text-center text-gray-500 bg-white/5 rounded-3xl mx-auto max-w-lg border border-white/5 backdrop-blur-sm mt-20">
                     <HeartIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                    <h3 className="text-lg font-bold text-gray-300">Your Library is Empty</h3>
+                    <h3 className="text-lg font-bold text-gray-300">My Library is Empty</h3>
                     <p className="text-sm mt-2">Love songs, albums, or artists to see them here.</p>
                 </div>
             </div>
@@ -31,7 +31,7 @@ const LibraryView = () => {
         <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
             <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
                 <span className="w-1.5 h-8 bg-blue-400 rounded-full mr-4"></span>
-                Your Library
+                My Library
             </h2>
 
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8">

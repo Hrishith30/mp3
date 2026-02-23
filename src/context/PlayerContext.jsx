@@ -425,6 +425,14 @@ export const PlayerProvider = ({ children }) => {
 
         // Wait 300ms before pushing to catch rapid sequential state updates
         pushTimeoutRef.current = setTimeout(() => {
+            // CRITICAL: Prevent over-writing remote state if it hasn't loaded yet
+            // or if the sync ID has changed but the remote query hasn't updated.
+            // remoteState === undefined means Convex is still fetching.
+            // remoteState === null means the sync ID is new/uninitialized.
+            if (remoteState === undefined || (remoteState && remoteState.syncId !== syncId)) {
+                return;
+            }
+
             const stateToPush = {
                 syncId,
                 currentTrack,
@@ -439,6 +447,22 @@ export const PlayerProvider = ({ children }) => {
                 favoritePlaylists,
                 favoriteArtists
             };
+
+            // Deep comparison to prevent redundant pushes (echos)
+            // We compare against remoteState to see if we have anything new to contribute
+            const isDifferent =
+                JSON.stringify(stateToPush.favorites) !== JSON.stringify(remoteState.favorites) ||
+                JSON.stringify(stateToPush.favoriteAlbums) !== JSON.stringify(remoteState.favoriteAlbums) ||
+                JSON.stringify(stateToPush.favoritePlaylists) !== JSON.stringify(remoteState.favoritePlaylists) ||
+                JSON.stringify(stateToPush.favoriteArtists) !== JSON.stringify(remoteState.favoriteArtists) ||
+                stateToPush.currentIndex !== remoteState.currentIndex ||
+                stateToPush.isShuffle !== remoteState.isShuffle ||
+                stateToPush.repeatMode !== remoteState.repeatMode ||
+                JSON.stringify(stateToPush.currentTrack) !== JSON.stringify(remoteState.currentTrack);
+
+            if (!isDifferent) {
+                return; // Nothing new to push
+            }
 
             pushState(stateToPush).then((timestamp) => {
                 if (timestamp) {
@@ -1004,8 +1028,10 @@ export const PlayerProvider = ({ children }) => {
         toggleAlbumFavorites,
         isArtistFavorite,
         toggleArtistFavorite,
+        isPlaylistFavorite,
         favorites,
         favoriteAlbums,
+        favoritePlaylists,
         favoriteArtists,
         history,
         syncId,
