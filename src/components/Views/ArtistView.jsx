@@ -108,7 +108,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
 
                     <button
                         onClick={handlePlayTopSongs}
-                        className="bg-blue-500 text-black px-10 py-4 rounded-full font-bold text-xl hover:scale-105 hover:bg-blue-400 transition-all shadow-xl shadow-blue-500/20 flex items-center gap-3 mx-auto md:mx-0"
+                        className="bg-blue-500 text-black px-10 py-4 rounded-full font-bold text-xl hover:scale-105 hover:bg-blue-400 transition-all shadow-xl flex items-center gap-3 mx-auto md:mx-0"
                     >
                         <PlayCircleIcon className="w-7 h-7" />
                         Play Top Songs

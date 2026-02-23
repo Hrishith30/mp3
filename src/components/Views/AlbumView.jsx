@@ -149,7 +149,7 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
                     <div className="flex items-center gap-4 mx-auto md:mx-0">
                         <button
                             onClick={handlePlayAll}
-                            className="bg-blue-500 text-black px-8 py-3.5 rounded-full font-bold text-lg hover:scale-105 hover:bg-blue-400 transition-all shadow-blue-500/30 flex items-center gap-2"
+                            className="bg-blue-500 text-black px-8 py-3.5 rounded-full font-bold text-lg hover:scale-105 hover:bg-blue-400 transition-all flex items-center gap-2"
                         >
                             <PlayCircleIcon className="w-6 h-6" />
                             Play {type === 'playlist' ? 'Playlist' : 'Album'}

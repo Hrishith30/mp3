@@ -106,7 +106,7 @@ const SearchView = ({ setActiveView }) => {
                             key={filter.id}
                             onClick={() => setActiveFilter(filter.id)}
                             className={`px-5 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${activeFilter === filter.id
-                                ? 'bg-blue-500 border-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                                ? 'bg-blue-500 border-blue-500 text-white'
                                 : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                                 }`}
                         >

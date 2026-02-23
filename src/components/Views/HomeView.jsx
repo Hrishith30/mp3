@@ -164,7 +164,7 @@ const HomeView = ({ setActiveView }) => {
                                             className={`w-full text-left px-5 py-3 text-sm hover:bg-white/10 transition-colors flex items-center justify-between ${selectedLang === lang ? 'text-blue-400 font-bold bg-white/5' : 'text-gray-300'}`}
                                         >
                                             {lang}
-                                            {selectedLang === lang && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shadow-blue-500/50" />}
+                                            {selectedLang === lang && <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />}
                                         </button>
                                     ))}
                                 </div>
