@@ -360,6 +360,7 @@ const HomeView = ({ setActiveView }) => {
                                             className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                console.log("Liking popular album:", item.browseId);
                                                 toggleAlbumFavorites(item.browseId);
                                             }}
                                             title={isAlbumFavorite(item.browseId) ? "Remove from Favorites" : "Add to Favorites"}
