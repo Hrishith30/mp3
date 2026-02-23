@@ -459,11 +459,15 @@ export const PlayerProvider = ({ children }) => {
     };
 
     const addToFavorites = (track) => {
-        if (!favorites.some(item => item.id === track.videoId)) {
-            setFavorites(prev => [{ id: track.videoId, title: track.title, artist: track.artist, thumb: track.thumb }, ...prev]);
-            return true;
-        }
-        return false;
+        let added = false;
+        setFavorites(prev => {
+            if (!prev.some(item => String(item.id) === String(track.videoId || track.id))) {
+                added = true;
+                return [{ id: track.videoId || track.id, title: track.title, artist: track.artist, thumb: track.thumb }, ...prev];
+            }
+            return prev;
+        });
+        return added;
     };
 
     const removeFromFavorites = (videoId) => {
