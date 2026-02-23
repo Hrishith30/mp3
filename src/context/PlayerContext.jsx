@@ -490,8 +490,8 @@ export const PlayerProvider = ({ children }) => {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/${endpoint}/${idStr}`);
                 const data = await response.json();
                 if (data && data.tracks) {
-                    const trackIdsToRemove = data.tracks.map(t => t.videoId || t.id);
-                    setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(item.id)));
+                    const trackIdsToRemove = data.tracks.map(t => String(t.videoId || t.id));
+                    setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
             } catch (e) { console.error(`Failed to remove ${type} tracks`, e); }
         } else {
@@ -512,8 +512,8 @@ export const PlayerProvider = ({ children }) => {
 
                     if (newTracks.length > 0) {
                         setFavorites(prev => {
-                            // Filter out tracks that are already in favorites
-                            const trulyNew = newTracks.filter(t => !prev.some(f => String(f.id) === String(t.id)));
+                            const prevIds = new Set(prev.map(p => String(p.id)));
+                            const trulyNew = newTracks.filter(t => !prevIds.has(String(t.id)));
                             return [...trulyNew, ...prev];
                         });
                     }
@@ -531,8 +531,8 @@ export const PlayerProvider = ({ children }) => {
                 const response = await fetch(`https://musicbackend-pkfi.vercel.app/artist/${idStr}`);
                 const data = await response.json();
                 if (data && data.songs && data.songs.results) {
-                    const trackIdsToRemove = data.songs.results.map(t => t.videoId || t.id);
-                    setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(item.id)));
+                    const trackIdsToRemove = data.songs.results.map(t => String(t.videoId || t.id));
+                    setFavorites(prev => prev.filter(item => !trackIdsToRemove.includes(String(item.id))));
                 }
             } catch (e) {
                 console.error("Failed to remove artist tracks", e);
@@ -553,8 +553,8 @@ export const PlayerProvider = ({ children }) => {
 
                     if (newTracks.length > 0) {
                         setFavorites(prev => {
-                            // Filter out tracks that are already in favorites
-                            const trulyNew = newTracks.filter(t => !prev.some(f => String(f.id) === String(t.id)));
+                            const prevIds = new Set(prev.map(p => String(p.id)));
+                            const trulyNew = newTracks.filter(t => !prevIds.has(String(t.id)));
                             return [...trulyNew, ...prev];
                         });
                     }
