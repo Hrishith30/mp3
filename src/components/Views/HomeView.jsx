@@ -152,7 +152,7 @@ const HomeView = ({ setActiveView }) => {
                     {isLangOpen && (
                         <>
                             <div className="fixed inset-0 z-10 cursor-default" onClick={() => setIsLangOpen(false)} />
-                            <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                 <div className="max-h-64 overflow-y-auto no-scrollbar py-1">
                                     {LANGUAGES.map(lang => (
                                         <button
@@ -184,10 +184,10 @@ const HomeView = ({ setActiveView }) => {
                     <div className="flex lg:grid lg:grid-cols-5 xl:grid-cols-6 gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x">
                         {history.slice(0, 10).map((item, index) => (
                             <div key={item.id} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(history.slice(0, 10).map(h => ({ ...h, videoId: h.id })), index, 'Recently Played')}>
-                                <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                                <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                                     <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                        <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                                        <PlayCircleIcon className="w-10 h-10 text-white" />
                                     </div>
                                     <button
                                         className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
@@ -239,10 +239,10 @@ const HomeView = ({ setActiveView }) => {
                             const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                             return (
                                 <div key={item.videoId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(langSongs.slice(0, 10), index, 'Trending')}>
-                                    <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                                    <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                                         <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                            <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                                            <PlayCircleIcon className="w-10 h-10 text-white" />
                                         </div>
                                         <button
                                             className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
@@ -293,10 +293,10 @@ const HomeView = ({ setActiveView }) => {
                                 const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                                 return (
                                     <div key={item.videoId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(songs, index, era)}>
-                                        <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                                        <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                                             <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                                                <PlayCircleIcon className="w-10 h-10 text-white" />
                                             </div>
                                             <button
                                                 className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
@@ -351,10 +351,10 @@ const HomeView = ({ setActiveView }) => {
                             const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                             return (
                                 <div key={item.browseId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => setActiveView('album', item.browseId)}>
-                                    <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                                    <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                                         <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                            <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                                            <PlayCircleIcon className="w-10 h-10 text-white" />
                                         </div>
                                         <button
                                             className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"

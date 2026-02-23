@@ -94,7 +94,7 @@ const SearchView = ({ setActiveView }) => {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search songs, artists, albums..."
-                        className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-full py-3.5 lg:py-4 pl-12 lg:pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-base lg:text-lg shadow-xl group-focus-within:bg-gradient-to-r group-focus-within:from-white/15 group-focus-within:to-white/10 font-medium"
+                        className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-full py-3.5 lg:py-4 pl-12 lg:pl-14 pr-6 focus:outline-none focus:bg-white/20 transition-all text-base lg:text-lg group-focus-within:bg-gradient-to-r group-focus-within:from-white/15 group-focus-within:to-white/10 font-medium"
                         autoFocus
                     />
                     <MagnifyingGlassIcon className="absolute left-4.5 lg:left-5 top-1/2 -translate-y-1/2 w-5 h-5 lg:w-6 lg:h-6 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
@@ -152,10 +152,10 @@ const SearchView = ({ setActiveView }) => {
 
                     return (
                         <div key={itemId || index} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => handlePlay(item)}>
-                            <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                            <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                                 <img src={thumb} alt={item.title || item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                    <PlayCircleIconSolid className="w-12 h-12 text-white drop-shadow-lg" />
+                                    <PlayCircleIconSolid className="w-12 h-12 text-white" />
                                 </div>
                                 {(() => {
                                     const id = itemId;

@@ -61,7 +61,7 @@ function App() {
               <button
                 key={lang}
                 onClick={() => handleLangSelect(lang)}
-                className="py-3.5 lg:py-4 px-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white hover:text-black hover:border-white active:scale-95 transition-all font-bold text-base lg:text-lg shadow-lg active:bg-blue-500 active:border-blue-500"
+                className="py-3.5 lg:py-4 px-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white hover:text-black hover:border-white active:scale-95 transition-all font-bold text-base lg:text-lg active:bg-blue-500 active:border-blue-500"
               >
                 {lang}
               </button>

@@ -78,7 +78,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
 
             {/* Artist Header */}
             <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-end mb-12">
-                <div className="w-48 h-48 lg:w-72 lg:h-72 shadow-2xl rounded-full overflow-hidden shrink-0 border-4 border-white/5">
+                <div className="w-48 h-48 lg:w-72 lg:h-72 rounded-full overflow-hidden shrink-0 border-4 border-white/5">
                     <img
                         src={getOptimizedImage(artistData.thumbnails || [], 'max')}
                         alt={artistData.name}
@@ -108,7 +108,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
 
                     <button
                         onClick={handlePlayTopSongs}
-                        className="bg-blue-500 text-black px-10 py-4 rounded-full font-bold text-xl hover:scale-105 hover:bg-blue-400 transition-all shadow-xl flex items-center gap-3 mx-auto md:mx-0"
+                        className="bg-blue-500 text-black px-10 py-4 rounded-full font-bold text-xl hover:scale-105 hover:bg-blue-400 transition-all flex items-center gap-3 mx-auto md:mx-0"
                     >
                         <PlayCircleIcon className="w-7 h-7" />
                         Play Top Songs
@@ -188,7 +188,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
                                 onClick={() => setActiveView('album', album.browseId, 'album')}
                                 className="group cursor-pointer"
                             >
-                                <div className="aspect-square rounded-2xl overflow-hidden mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300 relative">
+                                <div className="aspect-square rounded-2xl overflow-hidden mb-4 group-hover:scale-105 transition-transform duration-300 relative">
                                     <img
                                         src={getOptimizedImage(album.thumbnails || [], 'medium')}
                                         className="w-full h-full object-cover"

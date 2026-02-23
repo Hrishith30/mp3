@@ -111,7 +111,7 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
 
             {/* Album Header */}
             <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-center lg:items-end mb-10 lg:mb-12">
-                <div className="w-48 h-48 lg:w-72 lg:h-72 shadow-2xl rounded-2xl overflow-hidden shrink-0">
+                <div className="w-48 h-48 lg:w-72 lg:h-72 rounded-2xl overflow-hidden shrink-0">
                     <img
                         src={getOptimizedImage(albumData.thumbnails || [], 'max')}
                         alt={albumData.title}

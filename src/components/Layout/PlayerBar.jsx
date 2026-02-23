@@ -122,15 +122,15 @@ const PlayerBar = () => {
                     <span className="w-9 lg:w-14 text-right text-[10px] text-gray-400 font-bold">{formatTime(displayTime)}</span>
                     <div
                         ref={progressRef}
-                        className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative touch-none shadow-inner"
+                        className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group relative touch-none"
                         onMouseDown={handleSeekStart}
                         onTouchStart={handleSeekStart}
                     >
                         <div
-                            className={`h-full bg-blue-500 rounded-full relative pointer-events-none ${isDraggingProgress ? '' : 'transition-[width] duration-300 ease-linear'} shadow-[0_0_12px_rgba(59,130,246,0.6)]`}
+                            className={`h-full bg-blue-500 rounded-full relative pointer-events-none ${isDraggingProgress ? '' : 'transition-[width] duration-300 ease-linear'}`}
                             style={{ width: `${progressPercent}%` }}
                         >
-                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-xl opacity-100 ${isDraggingProgress ? 'scale-125' : ''} transition-all`} />
+                            <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-100 ${isDraggingProgress ? 'scale-125' : ''} transition-all`} />
                         </div>
                     </div>
                     <span className="w-9 lg:w-14 text-left text-[10px] text-gray-400 font-bold">{formatTime(duration)}</span>
@@ -142,7 +142,7 @@ const PlayerBar = () => {
                         <img
                             src={currentTrack?.thumb || "./music.png"}
                             alt="Art"
-                            className={`w-full h-full object-contain ${!currentTrack ? 'opacity-50' : 'rounded-xl overflow-hidden shadow-lg object-cover'}`}
+                            className={`w-full h-full object-contain ${!currentTrack ? 'opacity-50' : 'rounded-xl overflow-hidden object-cover'}`}
                             referrerPolicy="no-referrer"
                         />
                     </div>
@@ -185,7 +185,7 @@ const PlayerBar = () => {
 
                     <button
                         onClick={togglePlay}
-                        className="text-white hover:scale-110 active:scale-90 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-500/10 lg:bg-transparent rounded-full"
+                        className="text-white hover:scale-110 active:scale-90 transition-all bg-blue-500/10 lg:bg-transparent rounded-full"
                     >
                         {isPlaying ? (
                             <PauseCircleIcon className="w-12 h-12 lg:w-16 lg:h-16 text-blue-400" />
@@ -218,8 +218,8 @@ const PlayerBar = () => {
                         <button className="text-gray-500 hover:text-white transition-colors" onClick={() => adjustVolume(volume === 0 ? 1 : 0)}>
                             {volume === 0 ? <SpeakerXMarkIcon className="w-5 h-5" /> : <SpeakerWaveIcon className="w-5 h-5" />}
                         </button>
-                        <div ref={volumeRef} className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer shadow-inner" onMouseDown={handleVolumeStart} onTouchStart={handleVolumeStart}>
-                            <div className="h-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.4)]" style={{ width: `${volumePercent}%` }} />
+                        <div ref={volumeRef} className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer" onMouseDown={handleVolumeStart} onTouchStart={handleVolumeStart}>
+                            <div className="h-full bg-blue-500" style={{ width: `${volumePercent}%` }} />
                         </div>
                     </div>
                 </div>

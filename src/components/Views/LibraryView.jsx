@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePlayer } from '../../context/PlayerContext';
-import { PlayCircleIcon, HeartIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/solid';
+import { PlayCircleIcon, HeartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartIconOutline } from '@heroicons/react/24/outline';
 
 const LibraryView = () => {
@@ -46,7 +46,7 @@ const LibraryView = () => {
                         playAlbum(playlist, 0);
                         if (isShuffle) toggleShuffle();
                     }}
-                    className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-full font-bold transition-all shadow-lg hover:scale-105"
+                    className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-6 py-3 bg-blue-500 hover:bg-blue-400 text-white rounded-full font-bold transition-all hover:scale-105"
                 >
                     <PlayCircleIcon className="w-6 h-6 shrink-0" />
                     <span className="truncate">Play All</span>
@@ -64,7 +64,13 @@ const LibraryView = () => {
                     }}
                     className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-full font-bold transition-all border border-white/10 backdrop-blur-md"
                 >
-                    <ArrowsRightLeftIcon className="w-5 h-5 shrink-0" />
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 shrink-0">
+                        <polyline points="16 3 21 3 21 8"></polyline>
+                        <line x1="4" y1="20" x2="21" y2="3"></line>
+                        <polyline points="21 16 21 21 16 21"></polyline>
+                        <line x1="15" y1="15" x2="21" y2="21"></line>
+                        <line x1="4" y1="4" x2="9" y2="9"></line>
+                    </svg>
                     <span className="truncate">Shuffle</span>
                 </button>
             </div>
@@ -80,10 +86,10 @@ const LibraryView = () => {
                         }));
                         playAlbum(playlist, index);
                     }}>
-                        <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
+                        <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
                             <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                <PlayCircleIcon className="w-12 h-12 text-white drop-shadow-lg" />
+                                <PlayCircleIcon className="w-12 h-12 text-white" />
                             </div>
                             <button
                                 className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
