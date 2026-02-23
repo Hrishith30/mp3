@@ -362,15 +362,14 @@ export const PlayerProvider = ({ children }) => {
     // --- Convex Realtime Syncing logic ---
 
     // Ref to track if our update was remote to prevent infinite echo loops
-    const lastRemoteUpdateRef = useRef(0);
-    const isPushingStateRef = useRef(false);
+    const lastPushedTimestampRef = useRef(0);
 
     // Apply remote state when it changes
     useEffect(() => {
         if (!remoteState) return;
 
-        // If the state was updated remotely just recently, ignore it to avoid echo
-        if (Date.now() - remoteState.lastUpdated < 1000 && isPushingStateRef.current) {
+        // Skip our own updates (precise echo prevention)
+        if (remoteState.lastUpdated === lastPushedTimestampRef.current) {
             return;
         }
 
@@ -419,10 +418,8 @@ export const PlayerProvider = ({ children }) => {
             clearTimeout(pushTimeoutRef.current);
         }
 
-        // Wait 500ms before pushing to catch rapid sequential state updates
+        // Wait 300ms before pushing to catch rapid sequential state updates
         pushTimeoutRef.current = setTimeout(() => {
-            isPushingStateRef.current = true;
-
             const stateToPush = {
                 syncId,
                 currentTrack,
@@ -437,13 +434,14 @@ export const PlayerProvider = ({ children }) => {
                 favoriteArtists
             };
 
-            pushState(stateToPush).finally(() => {
-                setTimeout(() => {
-                    isPushingStateRef.current = false;
-                }, 500); // 500ms safety lock against echo
+            pushState(stateToPush).then((timestamp) => {
+                if (timestamp) {
+                    lastPushedTimestampRef.current = timestamp;
+                }
+            }).catch(err => {
+                console.error("Convex Push Failed:", err);
             });
-        }, 500);
-
+        }, 300);
     }, [
         syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
         history, favorites, favoriteAlbums, favoriteArtists, pushState

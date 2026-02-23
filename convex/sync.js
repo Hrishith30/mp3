@@ -63,5 +63,6 @@ export const updateUserState = mutation({
                 lastUpdated: timestamp,
             });
         }
+        return timestamp;
     },
 });
