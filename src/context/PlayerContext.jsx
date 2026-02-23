@@ -419,7 +419,7 @@ export const PlayerProvider = ({ children }) => {
             clearTimeout(pushTimeoutRef.current);
         }
 
-        // Wait 100ms before pushing to catch rapid sequential state updates
+        // Wait 500ms before pushing to catch rapid sequential state updates
         pushTimeoutRef.current = setTimeout(() => {
             isPushingStateRef.current = true;
 
@@ -440,9 +440,9 @@ export const PlayerProvider = ({ children }) => {
             pushState(stateToPush).finally(() => {
                 setTimeout(() => {
                     isPushingStateRef.current = false;
-                }, 100); // 100ms safety lock against echo
+                }, 500); // 500ms safety lock against echo
             });
-        }, 100);
+        }, 500);
 
     }, [
         syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
