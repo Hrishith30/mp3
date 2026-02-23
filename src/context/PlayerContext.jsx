@@ -389,7 +389,7 @@ export const PlayerProvider = ({ children }) => {
             }
         }
 
-        if (remoteState.queue) setQueue(remoteState.queue);
+        if (remoteState.queue && JSON.stringify(remoteState.queue) !== JSON.stringify(queue)) setQueue(remoteState.queue);
         if (remoteState.currentIndex !== undefined) setCurrentIndex(remoteState.currentIndex);
 
         if (remoteState.volume !== undefined && remoteState.volume !== volume) {
@@ -400,10 +400,10 @@ export const PlayerProvider = ({ children }) => {
         if (remoteState.isShuffle !== undefined) setIsShuffle(remoteState.isShuffle);
         if (remoteState.repeatMode !== undefined) setRepeatMode(remoteState.repeatMode);
 
-        if (remoteState.history) setHistory(remoteState.history);
-        if (remoteState.favorites) setFavorites(remoteState.favorites);
-        if (remoteState.favoriteAlbums) setFavoriteAlbums(remoteState.favoriteAlbums);
-        if (remoteState.favoriteArtists) setFavoriteArtists(remoteState.favoriteArtists);
+        if (remoteState.history && JSON.stringify(remoteState.history) !== JSON.stringify(history)) setHistory(remoteState.history);
+        if (remoteState.favorites && JSON.stringify(remoteState.favorites) !== JSON.stringify(favorites)) setFavorites(remoteState.favorites);
+        if (remoteState.favoriteAlbums && JSON.stringify(remoteState.favoriteAlbums) !== JSON.stringify(favoriteAlbums)) setFavoriteAlbums(remoteState.favoriteAlbums);
+        if (remoteState.favoriteArtists && JSON.stringify(remoteState.favoriteArtists) !== JSON.stringify(favoriteArtists)) setFavoriteArtists(remoteState.favoriteArtists);
 
         // Intentionally not syncing `currentTime` continuously to avoid jumpy playback, 
         // rely on track changes to sync position, or explicit seeks (implement later if needed)
@@ -504,10 +504,14 @@ export const PlayerProvider = ({ children }) => {
                         title: t.title,
                         artist: t.artist || albumArtist,
                         thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : albumArt
-                    })).filter(t => t.id && !favorites.some(f => String(f.id) === String(t.id)));
+                    })).filter(t => t.id);
 
                     if (newTracks.length > 0) {
-                        setFavorites(prev => [...newTracks, ...prev]);
+                        setFavorites(prev => {
+                            // Filter out tracks that are already in favorites
+                            const trulyNew = newTracks.filter(t => !prev.some(f => String(f.id) === String(t.id)));
+                            return [...trulyNew, ...prev];
+                        });
                     }
                 }
             } catch (error) { console.error(`Failed to add ${type} to favorites`, error); }
@@ -541,10 +545,14 @@ export const PlayerProvider = ({ children }) => {
                         title: t.title,
                         artist: artistName,
                         thumb: t.thumbnails ? t.thumbnails[t.thumbnails.length - 1].url : (data.thumbnails ? data.thumbnails[data.thumbnails.length - 1].url : '')
-                    })).filter(t => t.id && !favorites.some(f => String(f.id) === String(t.id)));
+                    })).filter(t => t.id);
 
                     if (newTracks.length > 0) {
-                        setFavorites(prev => [...newTracks, ...prev]);
+                        setFavorites(prev => {
+                            // Filter out tracks that are already in favorites
+                            const trulyNew = newTracks.filter(t => !prev.some(f => String(f.id) === String(t.id)));
+                            return [...trulyNew, ...prev];
+                        });
                     }
                 }
             } catch (error) {
