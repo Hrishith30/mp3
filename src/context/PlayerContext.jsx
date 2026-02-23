@@ -32,10 +32,12 @@ const installMediaSessionTrap = () => {
     console.log("✅ MediaSession trap installed — seek handlers permanently blocked");
 };
 
-// Install the trap immediately when this module loads (before any YouTube iframe loads)
-installMediaSessionTrap();
-
 export const PlayerProvider = ({ children }) => {
+    // --- MediaSession Trap ---
+    useEffect(() => {
+        installMediaSessionTrap();
+    }, []);
+
     // --- Sync ID logic ---
     const [syncId, setSyncId] = useState(() => {
         let storedId = localStorage.getItem('musicPlayer_syncId');
@@ -448,7 +450,7 @@ export const PlayerProvider = ({ children }) => {
         }, 300);
     }, [
         syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
-        history, favorites, favoriteAlbums, favoriteArtists, pushState
+        history, favorites, favoriteAlbums, favoritePlaylists, favoriteArtists, pushState
     ]);
 
     // Triggers for push
