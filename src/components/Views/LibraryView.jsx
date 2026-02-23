@@ -28,7 +28,7 @@ const LibraryView = () => {
     }
 
     return (
-        <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
+        <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
             <h2 className="text-3xl font-bold text-white mb-8 flex items-center">
                 <span className="w-1.5 h-8 bg-blue-400 rounded-full mr-4"></span>
                 Your Library
@@ -75,7 +75,7 @@ const LibraryView = () => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {favorites.map((item, index) => (
                     <div key={item.id} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => {
                         const playlist = favorites.map(i => ({
@@ -92,7 +92,7 @@ const LibraryView = () => {
                                 <PlayCircleIcon className="w-12 h-12 text-white drop-shadow-lg" />
                             </div>
                             <button
-                                className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     removeFromFavorites(item.id);

@@ -100,18 +100,18 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
     }
 
     return (
-        <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
+        <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
             <button
                 onClick={() => setActiveView('home')}
-                className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors group"
+                className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 lg:mb-8 transition-colors group"
             >
                 <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 Back
             </button>
 
             {/* Album Header */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-end mb-10 md:mb-12">
-                <div className="w-48 h-48 md:w-64 md:h-64 shadow-2xl rounded-2xl overflow-hidden shrink-0">
+            <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-center lg:items-end mb-10 lg:mb-12">
+                <div className="w-48 h-48 lg:w-72 lg:h-72 shadow-2xl rounded-2xl overflow-hidden shrink-0">
                     <img
                         src={getOptimizedImage(albumData.thumbnails || [], 'max')}
                         alt={albumData.title}
@@ -119,13 +119,13 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
                         referrerPolicy="no-referrer"
                     />
                 </div>
-                <div className="flex-1 text-center md:text-left">
-                    <h5 className="text-blue-400 font-bold tracking-widest mb-2 uppercase text-[10px] md:text-xs">
+                <div className="flex-1 text-center lg:text-left">
+                    <h5 className="text-blue-400 font-bold tracking-widest mb-2 uppercase text-[10px] lg:text-xs">
                         {type === 'playlist' ? 'Playlist' : 'Album'}
                     </h5>
-                    <h1 className="text-3xl md:text-6xl font-black text-white mb-4 leading-tight tracking-tight">{albumData.title}</h1>
+                    <h1 className="text-3xl lg:text-6xl font-black text-white mb-4 leading-tight tracking-tight">{albumData.title}</h1>
 
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-gray-400 text-xs md:text-sm mb-6 font-medium">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2 text-gray-400 text-xs lg:text-sm mb-6 font-medium">
                         <span className="flex items-center gap-1.5 text-white font-bold">
                             <div className="w-5 h-5 rounded-full bg-gray-600 overflow-hidden shrink-0">
                                 <img
@@ -170,21 +170,21 @@ const AlbumView = ({ albumId, setActiveView, type = 'album' }) => {
             </div>
 
             {/* Tracklist */}
-            <div className="bg-black/20 rounded-2xl md:rounded-3xl p-1 md:p-6 backdrop-blur-sm border border-white/5">
-                <div className="grid grid-cols-[auto_1fr_auto] gap-3 md:gap-4 px-3 md:px-4 py-3 text-gray-500 border-b border-white/5 text-[10px] md:text-sm uppercase tracking-[0.2em] font-black mb-2">
-                    <span className="w-6 md:w-8 text-center">#</span>
+            <div className="bg-black/20 rounded-2xl lg:rounded-3xl p-1 lg:p-6 backdrop-blur-sm border border-white/5">
+                <div className="grid grid-cols-[auto_1fr_auto] gap-3 lg:gap-4 px-3 lg:px-4 py-3 text-gray-500 border-b border-white/5 text-[10px] lg:text-sm uppercase tracking-[0.2em] font-black mb-2">
+                    <span className="w-6 lg:w-8 text-center">#</span>
                     <span>Title</span>
-                    <span className="w-12 md:w-16 text-right"><ClockIcon className="w-4 h-4 md:w-5 md:h-5 ml-auto" /></span>
+                    <span className="w-12 lg:w-16 text-right"><ClockIcon className="w-4 h-4 lg:w-5 lg:h-5 ml-auto" /></span>
                 </div>
 
-                <div className="space-y-0.5 md:space-y-1">
+                <div className="space-y-0.5 lg:space-y-1">
                     {albumData.tracks?.map((track, index) => (
                         <div
                             key={track.videoId || index}
                             onClick={() => handlePlayTrack(track, index)}
-                            className="grid grid-cols-[auto_1fr_auto] gap-3 md:gap-4 items-center px-3 md:px-4 py-3 md:py-3 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
+                            className="grid grid-cols-[auto_1fr_auto] gap-3 lg:gap-4 items-center px-3 lg:px-4 py-3 lg:py-3 rounded-xl hover:bg-white/10 transition-colors cursor-pointer group"
                         >
-                            <span className="w-6 md:w-8 text-center text-gray-500 group-hover:text-blue-400 font-bold text-xs md:text-sm">
+                            <span className="w-6 lg:w-8 text-center text-gray-500 group-hover:text-blue-400 font-bold text-xs lg:text-sm">
                                 <span className="group-hover:hidden">{index + 1}</span>
                                 <PlayCircleIcon className="w-5 h-5 hidden group-hover:block mx-auto" />
                             </span>

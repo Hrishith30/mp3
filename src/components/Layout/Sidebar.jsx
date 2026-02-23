@@ -14,7 +14,7 @@ const Sidebar = ({ activeView, setActiveView }) => {
 
     return (
         <>
-            <aside className="w-64 bg-white/5 backdrop-blur-[20px] border-r border-white/5 shadow-2xl hidden md:flex flex-col p-6 z-10 shrink-0 h-full overflow-y-auto custom-scrollbar">
+            <aside className="w-64 bg-white/5 backdrop-blur-[20px] border-r border-white/5 shadow-2xl hidden lg:flex flex-col p-6 z-10 shrink-0 h-full overflow-y-auto custom-scrollbar">
                 <div className="flex items-center gap-3 mb-10 px-2 group cursor-pointer" onClick={() => setActiveView('home')}>
                     <div className="relative w-10 h-10 flex items-center justify-center">
                         <img src="./music.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />

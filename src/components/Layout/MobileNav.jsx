@@ -14,7 +14,7 @@ const MobileNav = ({ activeView, setActiveView }) => {
 
     return (
         <>
-            <nav className="md:hidden fixed bottom-1 left-4 right-4 z-[60] pb-safe">
+            <nav className="lg:hidden fixed bottom-1 left-4 right-4 z-[60] pb-safe">
                 <div className="flex justify-around items-center h-16 bg-black/80 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
                     {navItems.map((item) => {
                         const isActive = activeView === item.id;

@@ -67,18 +67,18 @@ const ArtistView = ({ artistId, setActiveView }) => {
     }
 
     return (
-        <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
+        <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
             <button
                 onClick={() => setActiveView('search')}
-                className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors group"
+                className="flex items-center gap-2 text-gray-400 hover:text-white mb-6 lg:mb-8 transition-colors group"
             >
                 <ArrowLeftIcon className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
                 Back to Search
             </button>
 
             {/* Artist Header */}
-            <div className="flex flex-col md:flex-row gap-8 items-center md:items-end mb-12">
-                <div className="w-48 h-48 md:w-64 md:h-64 shadow-2xl rounded-full overflow-hidden shrink-0 border-4 border-white/5">
+            <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-end mb-12">
+                <div className="w-48 h-48 lg:w-72 lg:h-72 shadow-2xl rounded-full overflow-hidden shrink-0 border-4 border-white/5">
                     <img
                         src={getOptimizedImage(artistData.thumbnails || [], 'max')}
                         alt={artistData.name}
@@ -86,13 +86,13 @@ const ArtistView = ({ artistId, setActiveView }) => {
                         referrerPolicy="no-referrer"
                     />
                 </div>
-                <div className="flex-1 text-center md:text-left">
-                    <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                <div className="flex-1 text-center lg:text-left">
+                    <div className="flex items-center justify-center lg:justify-start gap-2 mb-2">
                         <UserIcon className="w-4 h-4 text-blue-400" />
-                        <h5 className="text-blue-400 font-bold tracking-widest uppercase text-[10px] md:text-xs">Verified Artist</h5>
+                        <h5 className="text-blue-400 font-bold tracking-widest uppercase text-[10px] lg:text-xs">Verified Artist</h5>
                     </div>
-                    <div className="flex flex-col md:flex-row items-center md:items-end gap-6 mb-6">
-                        <h1 className="text-4xl md:text-7xl font-black text-white leading-tight tracking-tight">{artistData.name}</h1>
+                    <div className="flex flex-col lg:flex-row items-center lg:items-end gap-6 mb-6">
+                        <h1 className="text-4xl lg:text-7xl font-black text-white leading-tight tracking-tight">{artistData.name}</h1>
                         <button
                             onClick={() => toggleArtistFavorite(artistId)}
                             className="mb-2 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
@@ -181,7 +181,7 @@ const ArtistView = ({ artistId, setActiveView }) => {
                         <RectangleStackIcon className="w-6 h-6 text-blue-400" />
                         Albums
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
                         {artistData.albums.results.map((album) => (
                             <div
                                 key={album.browseId}

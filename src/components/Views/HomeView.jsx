@@ -130,7 +130,7 @@ const HomeView = ({ setActiveView }) => {
     };
 
     return (
-        <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
+        <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
             <header className="mb-12 flex justify-between items-end">
                 <div>
                     <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
@@ -181,16 +181,16 @@ const HomeView = ({ setActiveView }) => {
                         <span className="w-1 h-6 bg-blue-400 rounded-full mr-3"></span>
                         Recently Played
                     </h3>
-                    <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
+                    <div className="flex lg:grid lg:grid-cols-5 xl:grid-cols-6 gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x">
                         {history.slice(0, 10).map((item, index) => (
-                            <div key={item.id} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(history.slice(0, 10).map(h => ({ ...h, videoId: h.id })), index, 'Recently Played')}>
+                            <div key={item.id} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(history.slice(0, 10).map(h => ({ ...h, videoId: h.id })), index, 'Recently Played')}>
                                 <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                     <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                         <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
                                     </div>
                                     <button
-                                        className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                        className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (isFavorite(item.id)) {
@@ -228,24 +228,24 @@ const HomeView = ({ setActiveView }) => {
                         Top {selectedLang} Picks
                     </h3>
                 </div>
-                <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
+                <div className="flex lg:grid lg:grid-cols-5 xl:grid-cols-6 gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x">
                     {loading ? (
                         Array(5).fill(0).map((_, i) => (
-                            <div key={i} className="min-w-[160px] md:min-w-0 aspect-square bg-white/5 rounded-2xl animate-pulse"></div>
+                            <div key={i} className="min-w-[160px] lg:min-w-0 aspect-square bg-white/5 rounded-2xl animate-pulse"></div>
                         ))
                     ) : (
                         langSongs.slice(0, 10).map((item, index) => {
                             const thumb = getOptimizedImage(item.thumbnails, 'medium');
                             const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                             return (
-                                <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(langSongs.slice(0, 10), index, 'Trending')}>
+                                <div key={item.videoId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(langSongs.slice(0, 10), index, 'Trending')}>
                                     <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                         <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                             <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
                                         </div>
                                         <button
-                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 const id = item.videoId || item.id;
@@ -287,19 +287,19 @@ const HomeView = ({ setActiveView }) => {
                                 {selectedLang} {era} Hits
                             </h3>
                         </div>
-                        <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
+                        <div className="flex lg:grid lg:grid-cols-5 xl:grid-cols-6 gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x">
                             {songs.map((item, index) => {
                                 const thumb = getOptimizedImage(item.thumbnails, 'medium');
                                 const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                                 return (
-                                    <div key={item.videoId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(songs, index, era)}>
+                                    <div key={item.videoId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => handlePlay(songs, index, era)}>
                                         <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                             <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                                 <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
                                             </div>
                                             <button
-                                                className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                                className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     const id = item.videoId || item.id;
@@ -340,24 +340,24 @@ const HomeView = ({ setActiveView }) => {
                         Popular Albums
                     </h3>
                 </div>
-                <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 md:mx-0 md:px-0 snap-x">
+                <div className="flex lg:grid lg:grid-cols-5 xl:grid-cols-6 gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 snap-x">
                     {loading ? (
                         Array(5).fill(0).map((_, i) => (
-                            <div key={i} className="min-w-[160px] md:min-w-0 aspect-square bg-white/5 rounded-2xl animate-pulse"></div>
+                            <div key={i} className="min-w-[160px] lg:min-w-0 aspect-square bg-white/5 rounded-2xl animate-pulse"></div>
                         ))
                     ) : (
                         langAlbums.slice(0, 10).map((item) => {
                             const thumb = getOptimizedImage(item.thumbnails, 'medium');
                             const artist = item.artists ? item.artists.map(a => a.name).join(', ') : (item.artist || 'Unknown');
                             return (
-                                <div key={item.browseId} className="min-w-[160px] md:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => setActiveView('album', item.browseId)}>
+                                <div key={item.browseId} className="min-w-[160px] lg:min-w-0 group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer snap-start" onClick={() => setActiveView('album', item.browseId)}>
                                     <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                         <img src={thumb} alt={item.title} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />
                                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                             <PlayCircleIcon className="w-10 h-10 text-white drop-shadow-lg" />
                                         </div>
                                         <button
-                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 console.log("Liking popular album:", item.browseId);

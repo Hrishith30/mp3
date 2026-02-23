@@ -19,15 +19,16 @@ body {
   margin: 0;
   display: flex;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at top left, #0a192f, #000000);
   background-attachment: fixed;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
 #root {
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
 }
 
 /* Glassmorphism Utilities Removed - Using Inline Tailwind */

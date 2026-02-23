@@ -85,22 +85,22 @@ const SearchView = ({ setActiveView }) => {
     };
 
     return (
-        <div className="p-8 md:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
-            <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl py-3 md:py-4 -mt-4 mb-6 md:mb-8">
-                <div className="relative max-w-2xl mx-auto group px-1 md:px-0">
+        <div className="p-6 lg:p-12 pb-32 w-full max-w-7xl mx-auto animate-fade-in">
+            <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl py-3 lg:py-4 -mt-4 mb-6 lg:mb-8">
+                <div className="relative max-w-2xl mx-auto group px-1 lg:px-0">
                     <input
                         type="text"
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search songs, artists, albums..."
-                        className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-full py-3.5 md:py-4 pl-12 md:pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-base md:text-lg shadow-xl group-focus-within:bg-gradient-to-r group-focus-within:from-white/15 group-focus-within:to-white/10 font-medium"
+                        className="w-full bg-white/10 border border-white/10 text-white placeholder-gray-400 rounded-full py-3.5 lg:py-4 pl-12 lg:pl-14 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all text-base lg:text-lg shadow-xl group-focus-within:bg-gradient-to-r group-focus-within:from-white/15 group-focus-within:to-white/10 font-medium"
                         autoFocus
                     />
-                    <MagnifyingGlassIcon className="absolute left-4.5 md:left-5 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                    <MagnifyingGlassIcon className="absolute left-4.5 lg:left-5 top-1/2 -translate-y-1/2 w-5 h-5 lg:w-6 lg:h-6 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
                 </div>
 
                 {/* Filters */}
-                <div className="flex gap-2.5 mt-4 overflow-x-auto pb-2 scrollbar-hide max-w-2xl mx-auto px-1 md:px-0">
+                <div className="flex gap-2.5 mt-4 overflow-x-auto pb-2 scrollbar-hide max-w-2xl mx-auto px-1 lg:px-0">
                     {filters.map(filter => (
                         <button
                             key={filter.id}
@@ -136,7 +136,7 @@ const SearchView = ({ setActiveView }) => {
                 </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {results.map((item, index) => {
                     const thumb = item.thumbnails ? item.thumbnails[item.thumbnails.length - 1].url : '';
                     let artist = 'Unknown Artist';
@@ -165,7 +165,7 @@ const SearchView = ({ setActiveView }) => {
 
                                     return (
                                         <button
-                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
+                                            className="absolute top-2 right-2 p-2 bg-black/50 rounded-full text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity hover:scale-110 hover:bg-black/70 z-10"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (item.resultType === 'song' || activeFilter === 'songs') {
