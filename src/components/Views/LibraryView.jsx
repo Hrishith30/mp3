@@ -15,10 +15,10 @@ const LibraryView = () => {
     const [activeTab, setActiveTab] = useState('songs');
 
     const tabs = [
-        { id: 'songs', label: 'Songs', count: favorites.length },
-        { id: 'albums', label: 'Albums', count: favoriteAlbums.length },
-        { id: 'playlists', label: 'Playlists', count: favoritePlaylists.length },
-        { id: 'artists', label: 'Artists', count: favoriteArtists.length },
+        { id: 'songs', label: 'Songs', count: (favorites || []).length },
+        { id: 'albums', label: 'Albums', count: (favoriteAlbums || []).length },
+        { id: 'playlists', label: 'Playlists', count: (favoritePlaylists || []).length },
+        { id: 'artists', label: 'Artists', count: (favoriteArtists || []).length },
     ];
 
     const renderEmptyState = (label) => (
@@ -43,8 +43,8 @@ const LibraryView = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all border whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
-                                ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            ? 'bg-blue-500 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         {tab.label}
@@ -135,9 +135,9 @@ const LibraryView = () => {
 
             {(activeTab === 'albums' || activeTab === 'playlists') && (
                 <>
-                    {((activeTab === 'albums' ? favoriteAlbums : favoritePlaylists).length > 0) ? (
+                    {((activeTab === 'albums' ? (favoriteAlbums || []) : (favoritePlaylists || [])).length > 0) ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                            {(activeTab === 'albums' ? favoriteAlbums : favoritePlaylists).map((item) => (
+                            {(activeTab === 'albums' ? (favoriteAlbums || []) : (favoritePlaylists || [])).map((item) => (
                                 <div key={item.id} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => setActiveView('album', item.id, activeTab === 'playlists' ? 'playlist' : 'album')}>
                                     <div className="aspect-square rounded-xl overflow-hidden mb-3 relative shadow-lg">
                                         <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -165,9 +165,9 @@ const LibraryView = () => {
 
             {activeTab === 'artists' && (
                 <>
-                    {favoriteArtists.length > 0 ? (
+                    {(favoriteArtists || []).length > 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                            {favoriteArtists.map((item) => (
+                            {(favoriteArtists || []).map((item) => (
                                 <div key={item.id} className="group relative bg-white/5 p-3 rounded-2xl hover:bg-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer" onClick={() => setActiveView('artist', item.id)}>
                                     <div className="aspect-square rounded-full overflow-hidden mb-3 relative shadow-lg border-2 border-white/5">
                                         <img src={item.thumb} alt={item.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
