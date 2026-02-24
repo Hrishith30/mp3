@@ -11,6 +11,7 @@ export default defineSchema({
         volume: v.number(),
         isShuffle: v.boolean(),
         repeatMode: v.number(),
+        isPlaying: v.optional(v.boolean()),
         history: v.array(v.any()),
         favorites: v.array(v.any()),
         favoriteAlbums: v.array(v.any()),

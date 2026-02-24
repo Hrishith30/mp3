@@ -114,8 +114,8 @@ export const PlayerProvider = ({ children }) => {
     const stopHandler = useCallback(() => mediaSessionActions.current.stop?.(), []);
 
     useEffect(() => {
-        stateRef.current = { queue, currentIndex, isShuffle, repeatMode };
-    }, [queue, currentIndex, isShuffle, repeatMode]);
+        stateRef.current = { queue, currentIndex, isShuffle, repeatMode, isPlaying };
+    }, [queue, currentIndex, isShuffle, repeatMode, isPlaying]);
 
     // --- Persistence ---
     useEffect(() => { localStorage.setItem('musicPlayer_currentTrack', JSON.stringify(currentTrack)); }, [currentTrack]);
@@ -400,6 +400,19 @@ export const PlayerProvider = ({ children }) => {
             if (playerRef.current) playerRef.current.setVolume(remoteState.volume * 100);
         }
 
+        if (remoteState.isPlaying !== undefined && remoteState.isPlaying !== isPlaying) {
+            if (remoteState.isPlaying) {
+                if (playerRef.current && isPlayerReady.current && !userIntentPaused.current) {
+                    playerRef.current.playVideo();
+                }
+            } else {
+                if (playerRef.current && isPlayerReady.current) {
+                    userIntentPaused.current = true;
+                    playerRef.current.pauseVideo();
+                }
+            }
+        }
+
         if (remoteState.isShuffle !== undefined) setIsShuffle(remoteState.isShuffle);
         if (remoteState.repeatMode !== undefined) setRepeatMode(remoteState.repeatMode);
 
@@ -441,6 +454,7 @@ export const PlayerProvider = ({ children }) => {
                 volume,
                 isShuffle,
                 repeatMode,
+                isPlaying,
                 history: history.slice(0, 50),
                 favorites,
                 favoriteAlbums,
@@ -451,6 +465,7 @@ export const PlayerProvider = ({ children }) => {
             // Deep comparison to prevent redundant pushes (echos)
             // We compare against remoteState to see if we have anything new to contribute
             const isDifferent =
+                !remoteState ||
                 JSON.stringify(stateToPush.favorites) !== JSON.stringify(remoteState.favorites) ||
                 JSON.stringify(stateToPush.favoriteAlbums) !== JSON.stringify(remoteState.favoriteAlbums) ||
                 JSON.stringify(stateToPush.favoritePlaylists) !== JSON.stringify(remoteState.favoritePlaylists) ||
@@ -458,6 +473,7 @@ export const PlayerProvider = ({ children }) => {
                 stateToPush.currentIndex !== remoteState.currentIndex ||
                 stateToPush.isShuffle !== remoteState.isShuffle ||
                 stateToPush.repeatMode !== remoteState.repeatMode ||
+                stateToPush.isPlaying !== remoteState.isPlaying ||
                 JSON.stringify(stateToPush.currentTrack) !== JSON.stringify(remoteState.currentTrack);
 
             if (!isDifferent) {
@@ -473,7 +489,7 @@ export const PlayerProvider = ({ children }) => {
             });
         }, 300);
     }, [
-        syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
+        syncId, currentTrack, queue, currentIndex, volume, isShuffle, repeatMode, isPlaying,
         history, favorites, favoriteAlbums, favoritePlaylists, favoriteArtists, pushState
     ]);
 
@@ -481,7 +497,7 @@ export const PlayerProvider = ({ children }) => {
     useEffect(() => {
         pushStateToConvex();
     }, [
-        currentTrack, queue, currentIndex, volume, isShuffle, repeatMode,
+        currentTrack, queue, currentIndex, volume, isShuffle, repeatMode, isPlaying,
         history, favorites, favoriteAlbums, favoritePlaylists, favoriteArtists, pushStateToConvex
     ]);
 
