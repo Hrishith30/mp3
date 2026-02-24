@@ -369,6 +369,7 @@ export const PlayerProvider = ({ children }) => {
 
     // Ref to track if our update was remote to prevent infinite echo loops
     const lastPushedTimestampRef = useRef(0);
+    const hasInitialRemoteSync = useRef(false);
 
     // Apply remote state when it changes
     useEffect(() => {
@@ -379,16 +380,21 @@ export const PlayerProvider = ({ children }) => {
             return;
         }
 
-        if (remoteState.currentTrack && JSON.stringify(remoteState.currentTrack) !== JSON.stringify(currentTrack)) {
+        const isInitialSync = !hasInitialRemoteSync.current;
+        if (isInitialSync) {
+            hasInitialRemoteSync.current = true;
+        }
+
+        const remoteVideoId = remoteState.currentTrack?.videoId || remoteState.currentTrack?.id;
+        const localVideoId = currentTrack?.videoId || currentTrack?.id;
+
+        if (remoteVideoId && remoteVideoId !== localVideoId) {
             setCurrentTrack(remoteState.currentTrack);
             // When receiving a remote track change, we should load it.
             if (playerRef.current && isPlayerReady.current) {
-                const videoId = remoteState.currentTrack.videoId || remoteState.currentTrack.id;
-                if (videoId) {
-                    playerRef.current.loadVideoById(videoId);
-                    // Force the remote current time as we just loaded a new video
-                    playerRef.current.seekTo(remoteState.currentTime || 0);
-                }
+                playerRef.current.loadVideoById(remoteVideoId);
+                // Force the remote current time as we just loaded a new video
+                playerRef.current.seekTo(remoteState.currentTime || 0);
             }
         }
 
@@ -402,11 +408,12 @@ export const PlayerProvider = ({ children }) => {
 
         if (remoteState.isPlaying !== undefined && remoteState.isPlaying !== isPlaying) {
             if (remoteState.isPlaying) {
-                if (playerRef.current && isPlayerReady.current && !userIntentPaused.current) {
+                // Do not auto-play on initial website open
+                if (!isInitialSync && playerRef.current && isPlayerReady.current && !userIntentPaused.current) {
                     playerRef.current.playVideo();
                 }
             } else {
-                if (playerRef.current && isPlayerReady.current) {
+                if (!isInitialSync && playerRef.current && isPlayerReady.current) {
                     userIntentPaused.current = true;
                     playerRef.current.pauseVideo();
                 }
